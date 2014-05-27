@@ -96,7 +96,7 @@ class Csiscone : public Cstable_cones, public Csplit_merge{
   std::vector<std::vector<Cmomentum> > protocones_list;
 
   // random number initialisation
-  static bool init_done;      ///< check random generator initialisation
+  static thread_local bool init_done;      ///< check random generator initialisation
 
  private:
   bool rerun_allowed;         ///< is recompute_jets allowed ?
