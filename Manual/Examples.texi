@@ -12,9 +12,11 @@ of the main features of these examples.
 * Jets::
 * HJets::
 * TopsJets::
+* DIS::
 * FONLO::
 * SoftQCD::
 * BFactories::
+* MEvalues::
 * APIexamples::
 @end menu
 
@@ -63,14 +65,22 @@ of the main features of these examples.
 @section Top quark (pair) + jets production
 
 @menu
-* Tops in MC@@NLO::
-* Tops plus Jets in MEPS::
+* Top quark pair production::
 * Tops plus W in MC@@NLO::
 @end menu
 
 @include LHC_TTBar.texi
 @include LHC_TTW.texi
 
+
+@node DIS
+@section Deep-inelastic scattering
+
+@menu
+* HERA::
+@end menu
+
+@include HERA_DIS.texi
 
 @node FONLO
 @section Fixed-order next-to-leading order calculations
@@ -103,15 +113,23 @@ of the main features of these examples.
 
 @include BFactory.texi
 
+@node MEvalues
+@section Calculating matrix element values for externally given configurations
+
+@menu
+* Matrix Element values through Python interface::
+* Matrix Element values through C++ interface::
+@end menu
+
+@include ME2.texi
+
 @node APIexamples
 @section Using the Python interface
 
 @menu
-* ME2::
 * Events::
 * MPIEvents::
 @end menu
 
-@include ME2.texi
 @include Events.texi
 @include MPIEvents.texi

@@ -4,7 +4,7 @@
   MASSIVE_PS 4 5;
 
   % scales, tags for scale variations
-  SP_NLOCT 1; FSF:=1.; RSF:=1.; QSF:=1.;
+  FSF:=1.; RSF:=1.; QSF:=1.;
   SCALES METS{FSF*MU_F2}{RSF*MU_R2}{QSF*MU_Q2};
 
   % tags for process setup
@@ -28,6 +28,7 @@
   Order_EW 2; CKKW sqr(QCUT/E_CMS);
   NLO_QCD_Mode MC@NLO {LJET};
   ME_Generator Amegic {LJET};
+  RS_ME_Generator Comix {LJET};
   Loop_Generator LOOPGEN {LJET};
   Integration_Error 0.02 {4};
   Integration_Error 0.02 {5};

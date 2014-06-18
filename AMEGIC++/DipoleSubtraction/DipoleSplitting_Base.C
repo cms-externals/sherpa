@@ -40,6 +40,8 @@ DipoleSplitting_Base::DipoleSplitting_Base()
   m_alpha=1.;
   m_kt2max=std::numeric_limits<double>::max();
   m_amin = max(ATOOLS::Accu(),1.e-8);
+  m_k0sqf=ToType<double>(rpa->gen.Variable("CSS_FS_PT2MIN"));
+  m_k0sqi=ToType<double>(rpa->gen.Variable("CSS_IS_PT2MIN"));
   m_es=ToType<int>(rpa->gen.Variable("CSS_EVOLUTION_SCHEME"));
   double helpd;
   Data_Reader reader(" ",";","!","=");
@@ -148,7 +150,7 @@ double DipoleSplitting_Base::Vijf(int type,int mode)
   case 2:
     return 5.-0.5*sqr(M_PI)-sqr(loga)+1.5*(m_alpha-1-loga)-(mode?0.5:0.);
   case 3:
-    return -16./9.-2./3.*(m_alpha-1-loga)-(mode?1./6.:0.);
+    return -16./9.-2./3.*(m_alpha-1-loga);
   case 4:
     return 50./9.-0.5*sqr(M_PI)-sqr(loga)+11./6.*(m_alpha-1-loga)-(mode?1./6.:0.);
   }

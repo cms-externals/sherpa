@@ -16,7 +16,7 @@ _Sherpa()
        return 0
     fi
 
-    ret="$(compgen -W "$(cat /home/stefan/hep/sherpa/rel-2-1-0/share/SHERPA-MC/completion.index)" -- ${cur})"
+    ret="$(compgen -W "$(cat /tmp/rel-2-1-1/share/SHERPA-MC/completion.index)" -- ${cur})"
     if [[ ${ret} == "" ]] ; then
       COMPREPLY=()
       return 0

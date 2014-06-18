@@ -223,10 +223,7 @@ void CS_Shower::GetKT2Min(Cluster_Amplitude *const ampl,KT2X_Map &kt2xmap)
     }
   Cluster_Amplitude *rampl(ampl);
   for (;rampl->Next();rampl=rampl->Next()) {
-    bool dc(false);
-    for (size_t i(0);i<rampl->Next()->Legs().size();++i)
-      if (rampl->Next()->Leg(i)->Stat()&2) dc=true;
-    if (!dc) break;
+    if (!(rampl->Flag()&1)) break;
   }
   bool smin(rampl->Legs().size()-rampl->NIn()==campl->Leg(0)->NMax());
   for (KT2X_Map::iterator kit(kt2xmap.begin());kit!=kt2xmap.end();++kit)
@@ -346,7 +343,7 @@ bool CS_Shower::PrepareStandardShower(Cluster_Amplitude *const ampl)
       std::cout.precision(12);
       Vec4D oldfl(l->FixSpec()), oldfr(r->FixSpec()), oldfs(s->FixSpec());
       Vec4D oldsf(split->FixSpec()), oldso(split->OldMomentum());
-      sing->BoostBackAllFS(l,r,s,split,split->GetFlavour(),cp.m_mode|4|8);
+      sing->BoostBackAllFS(l,r,s);
       p_shower->ReconstructDaughters(sing,1);
       almap[l]->SetMom(almap[l]->Id()&3?-l->Momentum():l->Momentum());
       almap[r]->SetMom(almap[r]->Id()&3?-r->Momentum():r->Momentum());
@@ -393,7 +390,7 @@ bool CS_Shower::PrepareStandardShower(Cluster_Amplitude *const ampl)
       l->SetOldMomentum(oldl);
       r->SetOldMomentum(oldr);
       s->SetOldMomentum(olds);
-      sing->BoostBackAllFS(l,r,s,split,split->GetFlavour(),cp.m_mode|4|8);
+      sing->BoostBackAllFS(l,r,s);
     }
     double kt2next(0.0);
     if (campl->Prev()) {

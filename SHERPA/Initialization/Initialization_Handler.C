@@ -769,7 +769,13 @@ bool Initialization_Handler::InitializeTheAnalyses()
     }
     Analysis_Interface* ana=Analysis_Interface::Analysis_Getter_Function::GetObject
                             (analyses[i],Analysis_Arguments(m_path,m_analysisdat,outpath));
-    if (ana==NULL) THROW(fatal_error,"Cannot initialize Analysis "+analyses[i]);
+    if (ana==NULL) {
+      if (!s_loader->LoadLibrary("Sherpa"+analyses[i]+"Analysis")) 
+	THROW(missing_module,"Cannot load Analysis library '"+analyses[i]+"'.");
+      ana=Analysis_Interface::Analysis_Getter_Function::GetObject
+	(analyses[i],Analysis_Arguments(m_path,m_analysisdat,outpath));
+      if (ana==NULL) THROW(fatal_error,"Cannot initialize Analysis "+analyses[i]);
+    }
     m_analyses.push_back(ana);
   }
   return true;
@@ -1069,15 +1075,15 @@ void Initialization_Handler::SetTuneParameters(const std::string tune)
     tuneparams.push_back("RESCALE_EXPONENT             = 0.244");
     tuneparams.push_back("SCALE_MIN                    = 2.44");
     if (tune == "CT10_UEup") {
-      tuneparams.push_back("SIGMA_ND_FACTOR              = 0.31");
+      tuneparams.push_back("SIGMA_ND_FACTOR              = 0.4104909");
       Read_Write_Base::AddCommandLine("MI_RESULT_DIRECTORY_SUFFIX _up;");
     }
     else if (tune == "CT10_UEdown") {
-      tuneparams.push_back("SIGMA_ND_FACTOR              = 0.38");
+      tuneparams.push_back("SIGMA_ND_FACTOR              = 0.4882269");
       Read_Write_Base::AddCommandLine("MI_RESULT_DIRECTORY_SUFFIX _down;");
     }
     else {
-      tuneparams.push_back("SIGMA_ND_FACTOR              = 0.3425");
+      tuneparams.push_back("SIGMA_ND_FACTOR              = 0.4452459");
     }
     tuneparams.push_back("CSS_IS_AS_FAC                = 0.50");
     tuneparams.push_back("CSS_IS_PT2MIN                = 4.78");

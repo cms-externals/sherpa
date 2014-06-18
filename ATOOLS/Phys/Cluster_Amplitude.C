@@ -30,7 +30,8 @@ ClusterAmplitude_PVector Cluster_Amplitude::s_ampls;
 
 Cluster_Amplitude::Cluster_Amplitude(Cluster_Amplitude *const prev):
   p_prev(prev), p_next(NULL), 
-  m_oew(0), m_oqcd(0), m_nin(0), m_new(0), m_ncl(0), m_kin(0), m_nlo(0),
+  m_oew(0), m_oqcd(0), m_nin(0), m_new(0), m_ncl(0),
+  m_kin(0), m_nlo(0), m_flag(0),
   m_mur2(0.0), m_muf2(0.0), m_muq2(0.0), m_mu2(0.0),
   m_kt2(0.0), m_z(0.0), m_phi(0.0), m_lkf(0.0),
   p_jf(NULL), p_proc(NULL), p_procs(NULL), p_dinfo(NULL), p_ms(NULL)
@@ -59,7 +60,7 @@ Cluster_Amplitude *Cluster_Amplitude::New
   ca->p_prev=prev;
   ca->p_next=NULL;
   ca->m_oew=ca->m_oqcd=0;
-  ca->m_nin=ca->m_new=ca->m_ncl=ca->m_kin=ca->m_nlo=0;
+  ca->m_nin=ca->m_new=ca->m_ncl=ca->m_kin=ca->m_nlo=ca->m_flag=0;
   ca->m_mur2=ca->m_muf2=ca->m_muq2=ca->m_mu2=0.0;
   ca->m_kt2=ca->m_z=ca->m_phi=ca->m_lkf=0.0;
   ca->p_jf=ca->p_proc=ca->p_procs=ca->p_dinfo=NULL;
@@ -252,22 +253,26 @@ void Cluster_Amplitude::SetColours
   if (lij->Flav().StrongCharge()==3) {
     if (li->Flav().StrongCharge()==3) {
       if (lj->Flav().Strong()) {
+        // triplet -> triplet octet
 	size_t nc(Flow::Counter());
 	colj.m_j=coli.m_i=nc;
 	colj.m_i=colij.m_i;
       }
       else {
+        // triplet -> triplet singlet
 	colj.m_j=colj.m_i=0;
 	coli.m_i=colij.m_i;
       }
     }
     else {
       if (li->Flav().Strong()) {
+        // triplet -> octet triplet
 	size_t nc(Flow::Counter());
 	coli.m_j=colj.m_i=nc;
 	coli.m_i=colij.m_i;
       }
       else {
+        // triplet -> singlet triplet
 	coli.m_j=coli.m_i=0;
 	colj.m_i=colij.m_i;
       }
@@ -276,22 +281,26 @@ void Cluster_Amplitude::SetColours
   else if (lij->Flav().StrongCharge()==-3) {
     if (li->Flav().StrongCharge()==-3) {
       if (lj->Flav().Strong()) {
+        // anti-triplet -> anti-triplet octet
 	size_t nc(Flow::Counter());
 	colj.m_i=coli.m_j=nc;
 	colj.m_j=colij.m_j;
       }
       else {
+        // anti-triplet -> anti-triplet singlet
 	colj.m_j=colj.m_i=0;
 	coli.m_j=colij.m_j;
       }
     }
     else {
       if (li->Flav().Strong()) {
+        // anti-triplet -> octet anti-triplet
 	size_t nc(Flow::Counter());
 	coli.m_i=colj.m_j=nc;
 	coli.m_j=colij.m_j;
       }
       else {
+        // anti-triplet -> singlet anti-triplet
 	coli.m_j=coli.m_i=0;
 	colj.m_j=colij.m_j;
       }
@@ -300,10 +309,12 @@ void Cluster_Amplitude::SetColours
   else if (lij->Flav().Strong()) {
     if (li->Flav().StrongCharge()==8) {
       if (lj->Flav().StrongCharge()==0) {
+        // octet -> octet singlet
 	coli.m_i=colij.m_i;
 	coli.m_j=colij.m_j;
       }
       else {
+        // octet -> octet octet
 	size_t nc(Flow::Counter());
 	colj.m_i=coli.m_j=nc;
 	colj.m_j=colij.m_j;
@@ -311,22 +322,35 @@ void Cluster_Amplitude::SetColours
       }
     }
     else if (abs(li->Flav().StrongCharge())==3) {
+      // octet -> triplet anti-triplet (or vice versa)
       coli.m_i=colij.m_i;
       colj.m_j=colij.m_j;
       if (li->Flav().StrongCharge()<0)
 	std::swap<ColorID>(coli,colj);
     }
     else {
+      // octet -> singlet octet
       colj.m_i=colij.m_i;
       colj.m_j=colij.m_j;
     }
   }
   else {
-    if (li->Flav().Strong()) {
+    if (abs(li->Flav().StrongCharge())==3) {
+      // singlet -> triplet anti-triplet (or vice versa)
       size_t nc(Flow::Counter());
       coli.m_i=colj.m_j=nc;
       if (li->Flav().StrongCharge()<0)
 	std::swap<ColorID>(coli,colj);
+    }
+    else if (li->Flav().StrongCharge()==8) {
+      // singlet -> octet octet
+      colj.m_i=coli.m_j=Flow::Counter();
+      colj.m_j=coli.m_i=Flow::Counter();
+    }
+    else {
+      // singlet -> singlet singlet
+      colj.m_i=coli.m_j=0;
+      colj.m_j=coli.m_i=0;
     }
   }
   li->SetCol(coli);
@@ -372,7 +396,7 @@ namespace ATOOLS {
 	<<", K = "<<ampl.LKF()<<"\n";
     ostr<<"  oew = "<<ampl.OrderEW()<<", oqcd = "<<ampl.OrderQCD()
 	<<", nlo = "<<ampl.NLO()<<", new = "<<ID(ampl.IdNew())
-	<<", ncl = "<<ampl.NewCol()<<"\n";
+	<<", ncl = "<<ampl.NewCol()<<", flag = "<<ampl.Flag()<<"\n";
     if (ampl.Decays().size()) {
       std::string ds;
       for (DecayInfo_Vector::const_iterator cit(ampl.Decays().begin());

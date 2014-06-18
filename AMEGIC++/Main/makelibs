@@ -60,15 +60,15 @@ if [ "$ONE" = "TRUE" ] ; then
 fi
 
 if [ "$SCONS" = "TRUE" ] ; then
-  /home/stefan/hep/sherpa/rel-2-1-0/bin/make2scons x;
+  /tmp/rel-2-1-1/bin/make2scons x;
   for J in $DIRS ; do
-    /home/stefan/hep/sherpa/rel-2-1-0/bin/make2scons $J 1;
+    /tmp/rel-2-1-1/bin/make2scons $J 1;
   done
   scons -j$JOBS install;
   exit 0;
 fi
 
-if ! test -z "mpic++ -Wl,--no-as-needed"; then export CXX="mpic++ -Wl,--no-as-needed"; fi
+if ! test -z "g++ -Wl,--no-as-needed"; then export CXX="g++ -Wl,--no-as-needed"; fi
 export CXXFLAGS=" -O2";
 if ! test -z ""; then export LDFLAGS=""; fi
 if ! test -z ""; then export LIBS=""; fi
@@ -78,7 +78,7 @@ if ! test -z "-g -O2"; then export CFLAGS="-g -O2"; fi
 if ! test -z "gfortran"; then export FC="gfortran"; fi
 if ! test -z "-g -O2"; then export FCFLAGS="-g -O2"; fi
 if ! test -z "gcc -E"; then export CPP="gcc -E"; fi
-if ! test -z "mpic++ -Wl,--no-as-needed -E"; then export CXXCPP="mpic++ -Wl,--no-as-needed -E"; fi
+if ! test -z "g++ -Wl,--no-as-needed -E"; then export CXXCPP="g++ -Wl,--no-as-needed -E"; fi
 
 if echo "x86_64-unknown-linux-gnu" | grep -q "i686"; then
     export CXX="$CXX -m32"

@@ -48,7 +48,7 @@ public:
 
 Hard_Decay_Handler::Hard_Decay_Handler(std::string path, std::string file) :
   p_newsublist(NULL), m_path(""), m_file(""), m_resultdir(""), m_offshell(""),
-  m_store_results(false), m_decay_tau(false), m_set_widths(false),
+  m_store_results(0), m_decay_tau(false), m_set_widths(false),
   m_br_weights(true), m_usemass(true)
 {
   Data_Reader dr(" ",";","!","=");
@@ -711,6 +711,7 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     msg_Debugging()<<"1 to 2 case"<<std::endl;
     Cluster_Amplitude* copy=ampl->InitPrev();
     copy->CopyFrom(ampl);
+    copy->SetFlag(1);
     copy->SetMS(ampl->MS());
     Cluster_Leg *lij(ampl->IdLeg(idmother));
     copy->SetKT2(lij->Mom().Abs2());
@@ -784,6 +785,7 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     // propagator always combines daughters 1+2
     Cluster_Amplitude* step1=ampl->InitPrev();
     step1->CopyFrom(ampl);
+    step1->SetFlag(1);
     step1->SetMS(ampl->MS());
     Cluster_Leg *lij(ampl->IdLeg(idmother));
     step1->SetKT2(lij->Mom().Abs2());
@@ -859,6 +861,7 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     
     Cluster_Amplitude* step2=step1->InitPrev();
     step2->CopyFrom(step1);
+    step2->SetFlag(1);
     step2->SetMS(step1->MS());
     for (size_t i=0; i<step1->Legs().size(); ++i)
       step1->Leg(i)->SetStat(step1->Leg(i)->Stat()|1);
@@ -930,6 +933,7 @@ void Hard_Decay_Handler::AddPhotonsClustering(Cluster_Amplitude*& ampl,
                 <<" with "<<daughter->Flav()<<" "<<ID(idmother)<<std::endl;
   Cluster_Amplitude* copy=ampl->InitPrev();
   copy->CopyFrom(ampl);
+  copy->SetFlag(1);
   copy->SetMS(ampl->MS());
   Cluster_Leg *lij(ampl->IdLeg(idmother));
   for (size_t i=0; i<ampl->Legs().size(); ++i)
@@ -1091,8 +1095,8 @@ void Hard_Decay_Handler::ReadDecayTable(Flavour decayer)
 
 void Hard_Decay_Handler::WriteDecayTables()
 {
-  if (!m_store_results) return;
-  
+  if (!(m_store_results&1)) return;
+
   Decay_Map::iterator dmit;
   for (dmit=p_decaymap->begin(); dmit!=p_decaymap->end(); ++dmit) {
     ofstream ostr((m_resultdir+"/Decays/"+dmit->first.ShellName()).c_str());
