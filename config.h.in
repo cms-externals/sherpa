@@ -1,4 +1,4 @@
-/* config.h.in.  Generated from configure.in by autoheader.  */
+/* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Architecture identified as Darwin MacOS */
 #undef ARCH_DARWIN
@@ -171,6 +171,9 @@
 /* using LHAPDF */
 #undef USING__LHAPDF
 
+/* using LHAPDF6 */
+#undef USING__LHAPDF6
+
 /* Using MCFM */
 #undef USING__MCFM
 
@@ -191,9 +194,6 @@
 
 /* using ROOT */
 #undef USING__ROOT
-
-/* using multithreading */
-#undef USING__Threading
 
 /* Version number of package */
 #undef VERSION

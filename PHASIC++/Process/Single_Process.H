@@ -10,16 +10,6 @@ namespace PHASIC {
 
     double m_lastxs, m_lastbxs;
     bool   m_zero;
-    int    m_nloct;
-
-    ATOOLS::ME_wgtinfo m_wgtinfo;
-
-    struct BVI_Wgt {
-      double m_w, m_c;
-      inline BVI_Wgt(const double &w=1.0,
-		     const double &c=0.0):
-	m_w(w), m_c(c) {}
-    };
 
   public:
 
@@ -29,7 +19,7 @@ namespace PHASIC {
     size_t Size() const;
     Process_Base *operator[](const size_t &i);
 
-    Weight_Info *OneEvent(const int wmode,const int mode=0);
+    ATOOLS::Weight_Info *OneEvent(const int wmode,const int mode=0);
 
     double KFactor() const;
 
@@ -37,12 +27,12 @@ namespace PHASIC {
     double CollinearCounterTerms
     (const int i,const ATOOLS::Flavour &fl,const ATOOLS::Vec4D &p,
      const double &z,const double &t1,const double &t2) const;
-    double GetX(const ATOOLS::Vec4D &p,const int i) const;
 
-    BVI_Wgt BeamISRWeight(const double &Q2,const int mode,
-			  const ATOOLS::ClusterAmplitude_Vector &ampls) const;
+    ATOOLS::Cluster_Sequence_Info BeamISRWeight
+    (const double &Q2,const int mode,
+     const ATOOLS::ClusterAmplitude_Vector &ampls);
     void BeamISRWeight(ATOOLS::NLO_subevtlist *const subs,
-		       const int mode) const;
+                       const int mode);
 
     double Differential(const ATOOLS::Vec4D_Vector &p);
 
@@ -52,8 +42,6 @@ namespace PHASIC {
 
     void SetScale(const Scale_Setter_Arguments &args);
     void SetKFactor(const KFactor_Setter_Arguments &args);
-
-    ATOOLS::ME_wgtinfo *GetMEwgtinfo();
 
     ATOOLS::Cluster_Amplitude *Cluster(const ATOOLS::Vec4D_Vector &p,
 				       const size_t &mode=0);

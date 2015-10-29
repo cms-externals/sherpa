@@ -80,7 +80,7 @@ size_t Subprocess_Info::NTotalExternal() const
 void Subprocess_Info::SetExternal(const std::vector<ATOOLS::Flavour> &fl,size_t &n)
 {
   if (m_ps.empty()) m_fl=fl[n++];
-  else for (size_t i(0);i<m_ps.size();++i) m_ps[i].SetExternal(fl);
+  else for (size_t i(0);i<m_ps.size();++i) m_ps[i].SetExternal(fl,n);
 }
 
 void Subprocess_Info::SetExternal(const std::vector<ATOOLS::Flavour> &fl)
@@ -324,6 +324,18 @@ void Subprocess_Info::SetTags(int& start)
       m_ps[i].SetTags(start);
     }
   }
+}
+
+void Subprocess_Info::SetTags(const std::vector<int>& tags)
+{
+  int n=0;
+  SetTags(tags,n);
+}
+
+void Subprocess_Info::SetTags(const std::vector<int>& tags,int &n)
+{
+  if (m_ps.size()==0) m_tag=tags[n++];
+  else for (size_t i=0;i<m_ps.size();++i) m_ps[i].SetTags(tags,n);
 }
 
 void Subprocess_Info::GetTags(std::vector<int>& tags) const

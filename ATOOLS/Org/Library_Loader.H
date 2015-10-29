@@ -26,9 +26,14 @@ namespace ATOOLS {
 
     // member functions
     void *LoadLibrary(const std::string &name);
+    void  UnloadLibrary(const std::string &name,void *module);
+    bool  LibraryIsLoaded(const std::string &name);
 
     void *GetLibraryFunction(const std::string &libname,
 			     const std::string &funcname);
+    void *GetLibraryFunction(const std::string &libname,
+			     const std::string &funcname,
+			     void *&module);
 
     // inline functions
     void AddPath(const std::string &path);

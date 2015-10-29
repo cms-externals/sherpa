@@ -5,10 +5,6 @@
 #include "ATOOLS/Math/Poincare.H"
 #include "PDF/Main/ISR_Base.H"
 
-#ifdef USING__Threading
-#include <pthread.h> 
-#endif 
-
 namespace ATOOLS { class Blob_Data_Base; }
 namespace BEAM   { class Beam_Base;      }
 
@@ -52,15 +48,8 @@ namespace PDF {
 
     double m_xf1[2], m_xf2[2];
 
-#ifdef USING__Threading
-    pthread_mutex_t m_mtx;
-#endif
-
     bool CheckRemnantKinematics(const ATOOLS::Flavour &flav,
 				double &x,int beam,bool swaped);
-
-    void MtxLock();
-    void MtxUnLock();
 
   public:
 
@@ -83,9 +72,11 @@ namespace PDF {
     bool MakeISR(const double &sp,const double &y,
 		 ATOOLS::Vec4D_Vector &p,const ATOOLS::Flavour_Vector &flavs);
 
-    double Weight(const int mode,
-		  ATOOLS::Vec4D p1,ATOOLS::Vec4D p2,double Q12,double Q22,
-		  ATOOLS::Flavour fl1,ATOOLS::Flavour fl2,int warn=1);
+    double PDFWeight(const int mode,
+                     ATOOLS::Vec4D p1,ATOOLS::Vec4D p2,double Q12,double Q22,
+                     ATOOLS::Flavour fl1,ATOOLS::Flavour fl2,int warn=1);
+    double Flux(const ATOOLS::Vec4D& p1, const ATOOLS::Vec4D& p2);
+    double CalcX(const ATOOLS::Vec4D& p);
 
     bool BoostInCMS(ATOOLS::Vec4D *p,const size_t n);
     bool BoostInLab(ATOOLS::Vec4D *p,const size_t n);

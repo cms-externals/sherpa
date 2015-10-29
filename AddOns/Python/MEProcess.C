@@ -30,8 +30,6 @@ MEProcess::~MEProcess()
 {
 }
 
-// TO BE REMOVED IN FINAL VERSION OR TO BE REPLACED BY PROPER METHOD TO
-// DETERMINE WHICH ME GENERATOR IS USED
 bool MEProcess::HasColorIntegrator()
 {
   return (p_proc->Integrator()->ColorIntegrator() != 0);
@@ -39,42 +37,46 @@ bool MEProcess::HasColorIntegrator()
 
 void MEProcess::SetMomentumIndices(const std::vector<int> &pdgs)
 {
+  DEBUG_FUNC(m_nin<<"->"<<m_nout<<": "<<pdgs);
   if(pdgs.size()<m_nin+m_nout) 
     THROW(fatal_error, "Wrong number of pdg codes given.");
-  for (unsigned int i(0); i<m_nin; i++) {
+  for (size_t i(0); i<m_nin; i++) {
     // find the first occurence of a flavour of type pdgs[i] among the
     // external legs
     bool found = false;
-    for (unsigned int j(0); j < m_nin; j++) {
-      if(((long int)(p_amp->Leg(j)->Flav()))
-         ==((long int)(ATOOLS::Flavour(abs(pdgs[i]), pdgs[i]<0?false:true)))) {
+    for (size_t j(0); j<m_nin; j++) {
+      if (p_amp->Leg(j)->Flav().Bar()
+          ==ATOOLS::Flavour(abs(pdgs[i]),pdgs[i]<0?false:true)) {
         // if the index j is already assigned, continue searching
-        if(std::find(m_mom_inds.begin(), m_mom_inds.end(), j)!=m_mom_inds.end())
+        if (std::find(m_mom_inds.begin(),m_mom_inds.end(),j)!=m_mom_inds.end())
           continue;
         m_mom_inds.push_back(j);
         found=true;
         break;
       }
     }
-    if(!found) THROW(fatal_error, "Could not assign pdg code.");
+    if(!found) THROW(fatal_error, "Could not assign IS pdg code.");
   }
-  for (unsigned int i(m_nin); i<m_nin+m_nout; i++) {
+  for (size_t i(m_nin); i<m_nin+m_nout; i++) {
     // find the first occurence of a flavour of type pdgs[i] among the
     // external legs
     bool found = false;
-    for (unsigned int j(m_nin); j < m_nin+m_nout; j++) {
-      if(((long int)(p_amp->Leg(j)->Flav()))
-         ==((long int)(ATOOLS::Flavour(abs(pdgs[i]), pdgs[i]<0?true:false)))) {
+    for (size_t j(m_nin); j<m_nin+m_nout; j++) {
+      msg_Debugging()<<ATOOLS::Flavour(abs(pdgs[i]),pdgs[i]<0?true:false)
+                     <<" <-> "<<p_amp->Leg(j)->Flav().Bar()<<std::endl;
+      if (p_amp->Leg(j)->Flav()
+          ==ATOOLS::Flavour(abs(pdgs[i]),pdgs[i]<0?true:false)) {
         // if the index j is already assigned, continue searching
-        if(std::find(m_mom_inds.begin(), m_mom_inds.end(), j)!=m_mom_inds.end())
+        if (std::find(m_mom_inds.begin(),m_mom_inds.end(),j)!=m_mom_inds.end())
           continue;
         m_mom_inds.push_back(j);
         found=true;
         break;
       }
     }
-    if(!found) THROW(fatal_error, "Could not assign pdg code.");
+    if(!found) THROW(fatal_error, "Could not assign FS pdg code.");
   }
+  msg_Debugging()<<m_mom_inds<<std::endl;
 }
 
 size_t MEProcess::NumberOfPoints()
@@ -163,6 +165,7 @@ void MEProcess::SetMomentum(const size_t &index, const ATOOLS::Vec4D &p)
 
 void MEProcess::AddInFlav(const int &id)
 {
+  DEBUG_FUNC(id);
   p_amp->CreateLeg(ATOOLS::Vec4D(),
                    ATOOLS::Flavour(id>0?id:-id, id>0 ? true : false));
   p_amp->SetNIn(p_amp->NIn()+1);
@@ -172,6 +175,7 @@ void MEProcess::AddInFlav(const int &id)
 
 void MEProcess::AddOutFlav(const int &id)
 {
+  DEBUG_FUNC(id);
   p_amp->CreateLeg(ATOOLS::Vec4D(),
                    ATOOLS::Flavour(id>0?id:-id, id>0 ? false : true));
   m_outpdgs.push_back(id);
@@ -180,6 +184,7 @@ void MEProcess::AddOutFlav(const int &id)
 
 void MEProcess::AddInFlav(const int &id, const int &col1, const int &col2)
 {
+  DEBUG_FUNC(id<<" ("<<col1<<","<<col2<<")");
   p_amp->CreateLeg(ATOOLS::Vec4D(),
                    ATOOLS::Flavour(id>0?id:-id, id>0 ? false : true),
                    ATOOLS::ColorID(col1, col2));
@@ -190,6 +195,7 @@ void MEProcess::AddInFlav(const int &id, const int &col1, const int &col2)
 
 void MEProcess::AddOutFlav(const int &id, const int &col1, const int &col2)
 {
+  DEBUG_FUNC(id<<" ("<<col1<<","<<col2<<")");
   p_amp->CreateLeg(ATOOLS::Vec4D(),
                    ATOOLS::Flavour(id>0?id:-id, id>0 ? false : true),
                    ATOOLS::ColorID(col1, col2));
@@ -231,22 +237,10 @@ PHASIC::Process_Base* MEProcess::FindProcess()
   PHASIC::Process_Base::SortFlavours(p_amp);
   m_name = PHASIC::Process_Base::GenerateName(p_amp);
   for (unsigned int i(0); i<me_handler->ProcMaps().size(); i++)
-    {
-      PHASIC::StringProcess_Map::const_iterator pit(me_handler->ProcMaps()[i]->find(PHASIC::nlo_type::lo)->second->find(m_name));
-      //FOR DEBUGGING PURPOSES
-      // std::cout << "Initialized Processes: " << std::endl;
-      // for (PHASIC::StringProcess_Map::const_iterator 
-      // 	     it(me_handler->ProcMaps()[i]->find(PHASIC::nlo_type::lo)->second->begin()); 
-      // 	   it !=me_handler->ProcMaps()[i]->find(PHASIC::nlo_type::lo)->second->end();
-      // 	   ++it)
-      // 	{
-      // 	  std::cout << "Process " << (it->first)<< std::endl;
-      // 	}
-      if(pit == me_handler->ProcMaps()[i]->find(PHASIC::nlo_type::lo)->second->end())
-	continue;
-      else{
-	return pit->second;
-      }
+    for (PHASIC::NLOTypeStringProcessMap_Map::const_iterator sit(me_handler->ProcMaps()[i]->begin());
+	 sit!=me_handler->ProcMaps()[i]->end();++sit) {
+      PHASIC::StringProcess_Map::const_iterator pit(sit->second->find(m_name));
+      if (pit!=sit->second->end()) return pit->second;
     }
   return NULL;
 }
@@ -256,20 +250,24 @@ void MEProcess::Initialize()
   p_proc = FindProcess();
   // if no process was found, assume there is only
   // one initialized in the run card and take that one
+  DEBUG_FUNC((p_proc?p_proc->Name():"no process set yet"));
   if(!p_proc){
     SHERPA::Matrix_Element_Handler* me_handler = p_gen->GetInitHandler()
       ->GetMatrixElementHandler();
     PHASIC::Process_Vector procs = me_handler->AllProcesses();
     if (procs.size()>1) THROW(fatal_error,"More than one process initialised.");
     p_proc=procs[0];
+    msg_Debugging()<<"Process: "<<p_proc->Name()<<std::endl;
     // fill cluster amplitude according to process
-    for (size_t i(0);i<p_proc->NIn()+p_proc->NOut();++i){
+    m_nin=p_proc->NIn();
+    m_nout=p_proc->NOut();
+    for (size_t i(0);i<p_proc->Flavours().size();++i) {
       ATOOLS::Flavour fl=p_proc->Flavours()[i];
-      if (i<p_proc->NIn()) fl=fl.Bar();
+      if (i<m_nin) fl=fl.Bar();
       p_amp->CreateLeg(ATOOLS::Vec4D(),fl);
       m_inpdgs.push_back(fl.IsAnti()?-fl.Kfcode():fl.Kfcode());
     }
-    p_amp->SetNIn(m_nin=p_proc->NIn());
+    p_amp->SetNIn(m_nin);
   }
   m_name=p_proc->Name();
   for (unsigned int i = 0; i<p_amp->Legs().size(); i++) {
@@ -322,6 +320,8 @@ void MEProcess::Initialize()
   for (std::vector<int>::const_iterator it=m_outpdgs.begin();
        it!=m_outpdgs.end(); it++) allpdgs.push_back(*it);
   SetMomentumIndices(allpdgs);
+  if (p_proc->Integrator()->ColorIntegrator()!=NULL)
+    p_proc->Integrator()->ColorIntegrator()->GeneratePoint();
 }
 
 double MEProcess::MatrixElement()
@@ -336,7 +336,7 @@ double MEProcess::MatrixElement()
 
 double MEProcess::CSMatrixElement()
 {
-  if (!HasColorIntegrator()) return p_proc->Differential(*p_amp);
+  if (!HasColorIntegrator()) return p_proc->Differential(*p_amp,1|4);
   SP(PHASIC::Color_Integrator) ci(p_proc->Integrator()->ColorIntegrator());
   ci->SetWOn(false);
   double r_csme(0.);
@@ -361,7 +361,7 @@ double MEProcess::CSMatrixElement()
     if(ind!=m_ncolinds/2)  THROW(fatal_error, "Internal Error");
     if(indbar!=m_ncolinds) THROW(fatal_error, "Internal Error");
     SetColors();
-    r_csme+=p_proc->Differential(*p_amp);
+    r_csme+=p_proc->Differential(*p_amp,1|4);
   }
   ci->SetWOn(true);
   return r_csme;

@@ -15,11 +15,13 @@ All_Hadron_Multiplets::All_Hadron_Multiplets() :
   ConstructAntiWaveFunctions();
   CreateMultiplets();
   AddMultipletWeights();
+  //PrintWaveFunctions();
+  //abort();
 }
 
 All_Hadron_Multiplets::~All_Hadron_Multiplets() 
 {
-  msg_Out()<<METHOD<<" for "<<p_wavefunctions->size()<<" wavefunctions.\n";
+  // msg_Out()<<METHOD<<" for "<<p_wavefunctions->size()<<" wavefunctions.\n";
   if (p_wavefunctions!=NULL && !p_wavefunctions->empty()) {
     for (Hadron_WF_Miter wfm=p_wavefunctions->begin();
 	 wfm!=p_wavefunctions->end();wfm++) {
@@ -219,8 +221,8 @@ All_Hadron_Multiplets::ConstructBaryonWaveFunction(int lp,int spin,
       pos1 = fl1; pos2 = fl2; pos3 = fl3; 
     }
     else
-      msg_Out()<<METHOD<<" did not find a combination for "
-	       <<"["<<fl3<<" "<<fl2<<" "<<fl1<<"], spin = "<<spin<<"\n";
+      msg_Tracking()<<METHOD<<" did not find a combination for "
+                    <<"["<<fl3<<" "<<fl2<<" "<<fl1<<"], spin = "<<spin<<"\n";
   }
   else if (spin==4) {
     // Decuplet
@@ -247,8 +249,8 @@ All_Hadron_Multiplets::ConstructBaryonWaveFunction(int lp,int spin,
       pos1 = fl3; pos2 = fl2; pos3 = fl1;
     }
     else
-      msg_Out()<<METHOD<<" did not find a combination for "
-	       <<"["<<fl3<<" "<<fl2<<" "<<fl1<<"], spin = "<<spin<<"\n";
+      msg_Tracking()<<METHOD<<" did not find a combination for "
+                    <<"["<<fl3<<" "<<fl2<<" "<<fl1<<"], spin = "<<spin<<"\n";
   }
 
   if (pos1<0 || pos2<0 || pos3<0 || wf<0) {
@@ -402,10 +404,14 @@ All_Hadron_Multiplets::ConstructBaryonWaveFunction(int lp,int spin,
 void All_Hadron_Multiplets::ConstructAntiWaveFunctions() 
 {
   Hadron_Wave_Function * anti; 
+  Hadron_WF_Map temps;
   for (Hadron_WF_Miter wfm=p_wavefunctions->begin();wfm!=p_wavefunctions->end();wfm++) {
     anti = wfm->second->Anti();
-    if (anti!=NULL) (*p_wavefunctions)[wfm->first.Bar()] = anti;
+    if (anti!=NULL) {
+      temps[wfm->first.Bar()] = anti;
+    }
   } 
+  p_wavefunctions->insert(temps.begin(),temps.end());
 }
 
 void All_Hadron_Multiplets::LookUpAngles(const int angular,const int spin,double & costh,double & sinth)

@@ -228,7 +228,7 @@ namespace MCATNLO {
 
 }
 
-#include "MODEL/Interaction_Models/Single_Vertex.H"
+#include "MODEL/Main/Single_Vertex.H"
 #include "ATOOLS/Math/Random.H"
 
 using namespace MCATNLO;
@@ -779,7 +779,7 @@ double LF_VFF_II::Z()
   return m_zmin + (m_zmax-m_zmin)*ATOOLS::ran->Get();
 }
 
-DECLARE_GETTER(LF_FFV_FF,"Gamma",SF_Lorentz,SF_Key);
+DECLARE_GETTER(LF_FFV_FF,"FFV",SF_Lorentz,SF_Key);
 
 SF_Lorentz *ATOOLS::Getter<SF_Lorentz,SF_Key,LF_FFV_FF>::
 operator()(const Parameter_Type &args) const

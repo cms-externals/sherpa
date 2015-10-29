@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("SHERPA/PerturbativePhysics","branches/rel-2-1-1","24084","d47f290662248e2ff4b1c9208366cb02");
+("SHERPA/PerturbativePhysics","trunk/SHERPA","26134","62a5e421f79a2a65286b06f8fbe83ca6");

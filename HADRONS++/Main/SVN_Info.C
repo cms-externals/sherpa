@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("HADRONS++/Main","branches/rel-2-1-1","24084","efa52aea61472922170545299d8412fd");
+("HADRONS++/Main","trunk/SHERPA","26134","0ebf834a880ae68bcce0bae7304cb8f8");

@@ -20,6 +20,7 @@ CS_Dipole::CS_Dipole(NLO_subevt *const sub,
   m_alpha(1.0), m_oldalpha(1.0), m_weight(1.0),
   m_amin(0.0), m_type(0), m_on(false), m_bmcw(bmcw)
 {
+  m_sub.p_ampl=NULL;
   p_fsmc=psh->FSRIntegrator();
   p_ismc=psh->ISRIntegrator();
   m_isrspkey.Assign("s' isr",5,0,psh->GetInfo());
@@ -105,42 +106,14 @@ void CS_Dipole::MPISync()
 #ifdef USING__MPI
   int size=MPI::COMM_WORLD.Get_size();
   if (size>1) {
-    int rank=mpi->HasMPISend()?mpi->MPISend().Get_rank():0;
     double val[3];
-    if (mpi->HasMPIRecv()) {
-      for (int tag=1;tag<mpi->MPIRecv().Get_size();++tag) {
-	mpi->MPIRecv().Recv(&val,3,MPI::DOUBLE,MPI::ANY_SOURCE,tag);
-	m_mnp+=val[0];
-	m_msum+=val[1];
-	m_msum2+=val[2];
-      }
-      if (rank) {
-	val[0]=m_mnp;
-	val[1]=m_msum;
-	val[2]=m_msum2;
-	mpi->MPISend().Send(&val,3,MPI::DOUBLE,0,rank);
-	mpi->MPISend().Recv(&val,3,MPI::DOUBLE,0,size+rank);
-	m_mnp=val[0];
-	m_msum=val[1];
-	m_msum2=val[2];
-      }
-      val[0]=m_mnp;
-      val[1]=m_msum;
-      val[2]=m_msum2;
-      for (int tag=1;tag<mpi->MPIRecv().Get_size();++tag) {
-	mpi->MPIRecv().Send(&val,3,MPI::DOUBLE,tag,size+tag);
-      }
-    }
-    else {
-      val[0]=m_mnp;
-      val[1]=m_msum;
-      val[2]=m_msum2;
-      mpi->MPISend().Send(&val,3,MPI::DOUBLE,0,rank);
-      mpi->MPISend().Recv(&val,3,MPI::DOUBLE,0,size+rank);
-      m_mnp=val[0];
-      m_msum=val[1];
-      m_msum2=val[2];
-    }
+    val[0]=m_mnp;
+    val[1]=m_msum;
+    val[2]=m_msum2;
+    mpi->MPIComm()->Allreduce(MPI_IN_PLACE,val,3,MPI::DOUBLE,MPI::SUM);
+    m_mnp=val[0];
+    m_msum=val[1];
+    m_msum2=val[2];
   }
   m_np+=m_mnp;
   m_sum+=m_msum;

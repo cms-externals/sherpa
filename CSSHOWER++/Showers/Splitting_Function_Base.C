@@ -13,9 +13,8 @@ template class Getter_Function
 <void,CSSHOWER::SFC_Filler_Key,SORT_CRITERION>;
 
 #include "CSSHOWER++/Tools/Parton.H"
-#include "MODEL/Interaction_Models/Lorentz_Function.H"
-#include "MODEL/Interaction_Models/Color_Function.H"
-#include "MODEL/Interaction_Models/Single_Vertex.H"
+#include "MODEL/Main/Color_Function.H"
+#include "MODEL/Main/Single_Vertex.H"
 #include "ATOOLS/Phys/Cluster_Amplitude.H"
 #include "PDF/Main/PDF_Base.H"
 #include "ATOOLS/Math/Random.H"
@@ -33,7 +32,7 @@ double SF_Lorentz::s_kappa=2.0/3.0;
 SF_Lorentz::SF_Lorentz(const SF_Key &key):
   p_ms(key.p_ms), p_cf(key.p_cf), m_col(0)
 {
-  m_flavs[0]=key.p_v->in[0];
+  m_flavs[0]=key.p_v->in[0].Bar();
   if (key.m_mode==0) {
     m_flavs[1]=key.p_v->in[1];
     m_flavs[2]=key.p_v->in[2];
@@ -94,7 +93,7 @@ Splitting_Function_Base::Splitting_Function_Base(const SF_Key &key):
       return;
     }
   }
-  p_lf = SFL_Getter::GetObject(ckey.p_v->Lorentz[0]->Type(),ckey);
+  p_lf = SFL_Getter::GetObject(ckey.p_v->Lorentz[0],ckey);
   if (p_lf==NULL) {
     m_on=-1;
     return;
@@ -134,7 +133,7 @@ double Splitting_Function_Base::MEPSWeight
   double mk2(p_lf->MS()->Mass2(p_lf->FlSpec())), mc2(p_lf->MS()->Mass2(p_lf->FlC()));
   switch (m_type) {
   case cstp::FF:
-    return (8.0*M_PI)/(Q2*y)*p_lf->JFF(y,mb2/Q2,mc2/Q2,mk2/Q2,ma2/Q2);
+    return (8.0*M_PI)/(Q2*y)/p_lf->JFF(y,mb2/Q2,mc2/Q2,mk2/Q2,ma2/Q2);
   case cstp::FI:
     return (8.0*M_PI)/((Q2+mb2+mc2)*y)/p_lf->JFI(y,eta,scale);
   case cstp::IF:
@@ -345,9 +344,9 @@ bool Splitting_Function_Base::PureQCD() const
 std::string SF_Key::ID(const int mode) const
 {
   if ((m_mode==1)^(mode==1))
-    return "{"+ToString(p_v->in[0])+"}{"
+    return "{"+ToString(p_v->in[0].Bar())+"}{"
       +ToString(p_v->in[2])+"}{"+ToString(p_v->in[1])+"}";
-  return "{"+ToString(p_v->in[0])+"}{"
+  return "{"+ToString(p_v->in[0].Bar())+"}{"
     +ToString(p_v->in[1])+"}{"+ToString(p_v->in[2])+"}";
 }
 
@@ -356,8 +355,8 @@ namespace CSSHOWER {
   std::ostream &operator<<(std::ostream &str,const SF_Key &k)
   {
     if (k.m_mode==0) 
-      return str<<k.m_type<<" "<<k.p_v->in[0]<<"->"<<k.p_v->in[1]<<","<<k.p_v->in[2];
-    return str<<k.m_type<<" "<<k.p_v->in[0]<<"->"<<k.p_v->in[2]<<","<<k.p_v->in[1];
+      return str<<k.m_type<<" "<<k.p_v->in[0].Bar()<<"->"<<k.p_v->in[1]<<","<<k.p_v->in[2];
+    return str<<k.m_type<<" "<<k.p_v->in[0].Bar()<<"->"<<k.p_v->in[2]<<","<<k.p_v->in[1];
   }
 
   std::ostream& operator<<(std::ostream& str, const Splitting_Function_Base &base) {

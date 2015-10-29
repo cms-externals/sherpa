@@ -52,99 +52,13 @@ Weight_Info *Process_Group::OneEvent(const int wmode,const int mode)
   return NULL;
 }
 
-#ifdef USING__Threading
-void *Process_Group::TDifferential(void *arg)
-{
-  PG_TID *tid((PG_TID*)arg);
-  while (true) {
-    // wait for group to signal
-    pthread_mutex_lock(&tid->m_s_mtx);
-    pthread_mutex_unlock(&tid->m_s_mtx);
-    pthread_cond_signal(&tid->m_s_cnd);
-    if (tid->m_s==0) return NULL;
-    // worker routine
-    tid->m_bd=tid->m_d=0.0;
-    if (tid->m_m&4) {
-	for (tid->m_i=tid->m_b;tid->m_i<tid->m_e;++tid->m_i) {
-	  tid->m_d+=tid->p_proc->
-	    m_mprocs[tid->m_i]->Differential(*tid->p_p);
-	  tid->m_bd+=tid->p_proc->m_mprocs[tid->m_i]->LastB();
-	}
-    }
-    else {
-	for (tid->m_i=tid->m_b;tid->m_i<tid->m_e;++tid->m_i) {
-	  tid->m_d+=tid->p_proc->
-	    m_umprocs[tid->m_i]->Differential(*tid->p_p);
-	  tid->m_bd+=tid->p_proc->m_umprocs[tid->m_i]->LastB();
-	}
-    }
-    // signal group to continue
-    pthread_cond_wait(&tid->m_t_cnd,&tid->m_t_mtx);
-  }
-  return NULL;
-}
-#endif
-
 double Process_Group::Differential(const Vec4D_Vector &p)
 {
   m_lastb=m_last=0.0;
-#ifdef USING__Threading
-  if (m_cts.empty()) {
-    for (size_t i=0;i<m_procs.size();i++) {
-      m_last+=m_procs[i]->Differential(p);
-      m_lastb+=m_procs[i]->LastB();
-    }
-  }
-  else {
-    // start calculator threads
-    size_t d(m_umprocs.size()/m_cts.size());
-    if (m_umprocs.size()%m_cts.size()>0) ++d;
-    for (size_t j(0), i(0);j<m_cts.size()&&i<m_umprocs.size();++j) {
-      PG_TID *tid(m_cts[j]);
-      tid->p_p=&p;
-      tid->m_m=1;
-      tid->m_b=i;
-      tid->m_e=Min(i+=d,m_umprocs.size());
-      pthread_cond_wait(&tid->m_s_cnd,&tid->m_s_mtx);
-    }
-    // suspend calculator threads
-    for (size_t j(0), i(0);j<m_cts.size()&&i<m_umprocs.size();++j) {
-      i+=d;
-      PG_TID *tid(m_cts[j]);
-      pthread_mutex_lock(&tid->m_t_mtx);
-      pthread_mutex_unlock(&tid->m_t_mtx);
-      pthread_cond_signal(&tid->m_t_cnd);
-      m_last+=tid->m_d;
-      m_lastb+=tid->m_bd;
-    }
-    // start calculator threads
-    d=m_mprocs.size()/m_cts.size();
-    if (m_mprocs.size()%m_cts.size()>0) ++d;
-    for (size_t j(0), i(0);j<m_cts.size()&&i<m_mprocs.size();++j) {
-      PG_TID *tid(m_cts[j]);
-      tid->p_p=&p;
-      tid->m_m=5;
-      tid->m_b=i;
-      tid->m_e=Min(i+=d,m_mprocs.size());
-      pthread_cond_wait(&tid->m_s_cnd,&tid->m_s_mtx);
-    }
-    // suspend calculator threads
-    for (size_t j(0), i(0);j<m_cts.size()&&i<m_mprocs.size();++j) {
-      i+=d;
-      PG_TID *tid(m_cts[j]);
-      pthread_mutex_lock(&tid->m_t_mtx);
-      pthread_mutex_unlock(&tid->m_t_mtx);
-      pthread_cond_signal(&tid->m_t_cnd);
-      m_last+=tid->m_d;
-      m_lastb+=tid->m_bd;
-    }
-  }
-#else
   for (size_t i(0);i<m_procs.size();++i) {
     m_last+=m_procs[i]->Differential(p);
     m_lastb+=m_procs[i]->LastB();
   }
-#endif
   if (IsNan(m_last))
     msg_Error()<<METHOD<<"(): "<<om::red
 		<<"Cross section is 'nan'."<<om::reset<<std::endl;
@@ -172,8 +86,14 @@ void Process_Group::Add(Process_Base *const proc)
   if (m_procmap.find(proc->Name())!=m_procmap.end())
     THROW(critical_error,"Doubled process '"+proc->Name()+"'");
   m_procmap[proc->Name()]=proc;
-  m_oew=Max(m_oew,proc->OrderEW());
-  m_oqcd=Max(m_oqcd,proc->OrderQCD());
+  if (m_maxcpl.size()<proc->MaxOrders().size()) {
+    m_maxcpl.resize(proc->MaxOrders().size(),0);
+    m_mincpl.resize(proc->MinOrders().size(),99);
+  }
+  for (size_t i(0);i<m_maxcpl.size();++i) {
+    m_maxcpl[i]=Max(m_maxcpl[i],proc->MaxOrder(i));
+    m_mincpl[i]=Min(m_mincpl[i],proc->MinOrder(i));
+  }
   if (m_nin>0 && m_nout>0 &&
       (m_nin!=proc->NIn() || m_nout!=proc->NOut())) {
     msg_Error()<<METHOD<<"(): Cannot add process '"
@@ -253,49 +173,7 @@ bool Process_Group::CalculateTotalXSec(const std::string &resultpath,
   double var(p_int->TotalVar());
   msg_Info()<<METHOD<<"(): Calculate xs for '"
 	    <<m_name<<"' ("<<(p_gen?p_gen->Name():"")<<")"<<std::endl;
-#ifdef USING__Threading
-  int helpi;
-  Data_Reader read(" ",";","!","=");
-  if (!read.ReadFromFile(helpi,"PG_THREADS")) helpi=4;
-  else msg_Info()<<METHOD<<"(): Set number of threads "<<helpi<<".\n";
-  if (m_nout<=2) helpi=0;
-  else if (m_nout==3) helpi=Min(helpi,2);
-  else if (m_nout==4) helpi=Min(helpi,3);
-  if (m_mprocs.size()) m_cts.resize(helpi);
-  for (size_t i(0);i<m_cts.size();++i) {
-    PG_TID *tid(new PG_TID(this));
-    m_cts[i] = tid;
-    pthread_cond_init(&tid->m_s_cnd,NULL);
-    pthread_cond_init(&tid->m_t_cnd,NULL);
-    pthread_mutex_init(&tid->m_s_mtx,NULL);
-    pthread_mutex_init(&tid->m_t_mtx,NULL);
-    pthread_mutex_lock(&tid->m_s_mtx);
-    pthread_mutex_lock(&tid->m_t_mtx);
-    tid->m_s=1;
-    int tec(0);
-    if ((tec=pthread_create(&tid->m_id,NULL,&TDifferential,(void*)tid)))
-      THROW(fatal_error,"Cannot create thread "+ToString(i));
-  }
-#endif
   double totalxs(psh->Integrate()/rpa->Picobarn());
-#ifdef USING__Threading
-  for (size_t i(0);i<m_cts.size();++i) {
-    PG_TID *tid(m_cts[i]);
-    tid->m_s=0;
-    pthread_cond_wait(&tid->m_s_cnd,&tid->m_s_mtx);
-    int tec(0);
-    if ((tec=pthread_join(tid->m_id,NULL)))
-      THROW(fatal_error,"Cannot join thread"+ToString(i));
-    pthread_mutex_unlock(&tid->m_t_mtx);
-    pthread_mutex_unlock(&tid->m_s_mtx);
-    pthread_mutex_destroy(&tid->m_t_mtx);
-    pthread_mutex_destroy(&tid->m_s_mtx);
-    pthread_cond_destroy(&tid->m_t_cnd);
-    pthread_cond_destroy(&tid->m_s_cnd);
-    delete tid;
-  }
-  m_cts.clear();
-#endif
   if (!IsEqual(totalxs,p_int->TotalResult())) {
     msg_Error()<<"Result of PS-Integrator and summation do not coincide!\n"
 	       <<"  '"<<m_name<<"': "<<totalxs
@@ -322,7 +200,7 @@ void Process_Group::SetLookUp(const bool lookup)
 }
 
 bool Process_Group::CheckFlavours
-(const Subprocess_Info &ii,const Subprocess_Info &fi) const
+(const Subprocess_Info &ii,const Subprocess_Info &fi,int mode) const
 {
   std::vector<Flavour> cfl;
   for (size_t i(0);i<ii.m_ps.size();++i) cfl.push_back(ii.m_ps[i].m_fl);
@@ -334,13 +212,13 @@ bool Process_Group::CheckFlavours
     if (abs(cfl[i].StrongCharge())!=8)
       strong+=i<nin?-cfl[i].StrongCharge():cfl[i].StrongCharge();
     quarks+=cfl[i].IsQuark();
-    if (quarks>m_pinfo.m_nmaxq) {
+    if (mode==0 && quarks>m_pinfo.m_nmaxq) {
       msg_Debugging()<<METHOD<<"(): '"<<GenerateName(ii,fi)<<"': n_q > "
 		     <<m_pinfo.m_nmaxq<<". Skip process.\n";
       return false;
     }
   }
-  if (quarks<m_pinfo.m_nminq) {
+  if (mode==0 && quarks<m_pinfo.m_nminq) {
     msg_Debugging()<<METHOD<<"(): '"<<GenerateName(ii,fi)<<"': n_q < "
 		   <<m_pinfo.m_nminq<<". Skip process.\n";
     return false;
@@ -351,7 +229,7 @@ bool Process_Group::CheckFlavours
     if (fi.m_ps[i].m_ps.empty()) continue;
     Subprocess_Info cii;
     cii.m_ps.push_back(fi.m_ps[i]);
-    if (!CheckFlavours(cii,fi.m_ps[i])) {
+    if (!CheckFlavours(cii,fi.m_ps[i],1)) {
       res=false;
       break;
     }
@@ -402,17 +280,6 @@ bool Process_Group::ConstructProcesses()
   Process_Info cpi(m_pinfo);
   bool res(ConstructProcesses(cpi,0));
   return res;
-}
-
-void Process_Group::SetUpThreading()
-{
-#ifdef USING__Threading
-  for (size_t i(0);i<m_procs.size();++i) {
-    m_procs[i]->SetUpThreading();
-    if (m_procs[i]->IsMapped()) m_mprocs.push_back(m_procs[i]);
-    else m_umprocs.push_back(m_procs[i]);
-  }
-#endif
 }
 
 void Process_Group::SetGenerator(ME_Generator_Base *const gen) 

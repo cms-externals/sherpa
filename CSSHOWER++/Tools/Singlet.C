@@ -123,44 +123,12 @@ int Singlet::SplitParton(Parton * mother, Parton * part1, Parton * part2)
 
   if (part2->GetNext()) part2->GetNext()->GetSing()->AddParton(part2->GetNext());
 
-  if (mother->GetType()==pst::IS) {
-    if ((flav.IsGluon()  || flav.IsGluino())  && 
-	(flav1.IsQuark() || flav1.IsSquark()) && flav1.IsAnti() && 
-	(flav2.IsQuark() || flav2.IsSquark())) {  
-      std::swap<PLiter>(pos1,pos2);
-    }
-    else if ((flav.IsQuark()  || flav.IsSquark())   && !flav.IsAnti()  && 
-	     (flav1.IsQuark() || flav1.IsSquark()) && !flav1.IsAnti() && 
-	     (flav2.IsGluon() || flav2.IsGluino())) {
-      std::swap<PLiter>(pos1,pos2);
-    }
-    else if ((flav.IsQuark()  || flav.IsSquark())  && flav.IsAnti()   && 
-	     (flav2.IsQuark() || flav2.IsSquark()) && !flav2.IsAnti() && 
-	     (flav1.IsGluon() || flav1.IsGluino())) {
-      std::swap<PLiter>(pos1,pos2);
-    }
-  }
-  if (mother->GetType()==pst::FS) {
-    if ((flav.IsQuark()  || flav.IsSquark()) && 
-	(flav2.IsQuark() || flav2.IsSquark())) {
-      if (!flav2.IsAnti()) std::swap<PLiter>(pos1,pos2);
-    }
-    else if ((flav.IsQuark()  || flav.IsSquark()) && 
-	     (flav1.IsQuark() || flav1.IsSquark())) {
-      if (flav1.IsAnti()) std::swap<PLiter>(pos1,pos2);
-    }
-    else if ((flav.IsGluon()  || flav.IsGluino()) && 
-	     (flav1.IsQuark() || flav1.IsSquark())) {
-      if (!flav1.IsAnti()) std::swap<PLiter>(pos1,pos2);
-    }
-  }
-  
   plit++;
   delete mother; 
   plit = erase(plit);
-  if ((flav.IsGluon()  || flav.IsGluino()) && 
-      (flav1.IsQuark() || flav1.IsSquark()) && 
-      (flav2.IsQuark() || flav2.IsSquark())) { return 1; }
+  if (flav.StrongCharge()==8 && 
+      abs(flav1.StrongCharge())==3 && 
+      abs(flav2.StrongCharge())==3) { return 1; }
   return 0;
 }
 
@@ -262,17 +230,6 @@ bool Singlet::RearrangeColours(Parton * mother, Parton * daughter1, Parton * dau
 }
 
 
-void Singlet::
-ReestablishConnections(Parton * mother, Parton * daughter1, Parton * daughter2)
-{
-  Parton * parton;
-  for (Parton_List::iterator pit=begin();pit!=end();pit++) {
-    parton = (*pit);
-    if (parton->GetLeft()==mother)  parton->SetLeft(daughter1);
-    if (parton->GetRight()==mother) parton->SetRight(daughter2);
-  }
-}
-
 bool Singlet::ArrangeColours(Parton * mother, Parton * daughter1, Parton * daughter2)
 {
   daughter1->SetSing(this);
@@ -289,7 +246,6 @@ bool Singlet::ArrangeColours(Parton * mother, Parton * daughter1, Parton * daugh
   daughter2->SetFlow(2,0);
   Flavour mo(mother->GetFlavour()), d1(daughter1->GetFlavour()), d2(daughter2->GetFlavour());
   if (mother->GetType()==pst::IS) { mo=mo.Bar(); d1=d1.Bar(); }
-  ReestablishConnections(mother,daughter1,daughter2);
   if (mo.StrongCharge()==-3) {
     if (d1.StrongCharge()==-3) {
       if (d2.StrongCharge()==8) {
