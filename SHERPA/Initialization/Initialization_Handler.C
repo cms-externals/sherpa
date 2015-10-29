@@ -595,8 +595,8 @@ bool Initialization_Handler::InitializeThePDFs()
     if (*pdflib=="None") continue;
     if (*pdflib=="LHAPDFSherpa") {
 #ifdef USING__LHAPDF
-      s_loader->AddPath(std::string(LHAPDF_PATH)+"/lib");
-      s_loader->LoadLibrary("LHAPDF");
+    //  s_loader->AddPath(std::string(LHAPDF_PATH)+"/lib");
+    //  s_loader->LoadLibrary("LHAPDF");
 #else
       THROW(fatal_error, "Sherpa not compiled with LHAPDF support.");
 #endif
