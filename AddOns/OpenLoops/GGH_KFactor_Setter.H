@@ -17,17 +17,17 @@ namespace PHASIC {
 
   // Minimum pt threshold for massless partons:
   // Cluster back to lower multipl process below
-  static const double IR_CO=0.01;
+  static constexpr double IR_CO=0.01;
 
   class GGH_KFactor_Setter : public KFactor_Setter_Base {
-    
+
     typedef std::vector<Subprocess_Info> SubprocInfo_Vector;
-    
+
   public:
 
     GGH_KFactor_Setter(const KFactor_Setter_Arguments &args);
     virtual ~GGH_KFactor_Setter();
-    
+
     // Default KFactor method
     double KFactor();
     // KFactor for Comix, not yet tested or validated
@@ -74,7 +74,7 @@ namespace PHASIC {
     virtual               ATOOLS::Cluster_Amplitude* GetAmpl() const;
     // Set p_next_ampl to a clustered configuration
     virtual void          SetNextAmplitude();
-    
+
     virtual               ATOOLS::Vec4D_Vector GetMomenta() const;
     bool                  ContainsDecays(const PHASIC::Process_Base& proc) const;
 
