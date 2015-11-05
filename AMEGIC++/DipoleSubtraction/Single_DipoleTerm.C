@@ -57,39 +57,46 @@ Single_DipoleTerm::Single_DipoleTerm(const Process_Info &pinfo,size_t pi,size_t 
   bool val=DetermineType();
   if (!val) return;
 
-  m_LOpij = m_nin+m_nout-2;
-  if (m_pi<m_nin) m_LOpij = m_pi;
+  m_LOpij = m_pi;
+  size_t m_LOpj=m_pj;
   m_LOpk  = m_pk;
-  if (m_pi<m_pk&&m_pi>=m_nin) m_LOpk--;
-  if (m_pj<m_pk) m_LOpk--;
+
+  if (m_pi>m_nin && m_flavs[m_pi].IsGluon() && m_flavs[m_pj].IsQuark())
+    std::swap<size_t>(m_LOpij,m_LOpj);
 
   //Construct LO Process
   Process_Info lopi=m_pinfo;
   for (size_t i(0);i<m_nin;++i) lopi.m_ii.m_ps[i].m_tag=i;
   int tag=m_nin;
   lopi.m_fi.SetTags(tag);
+  std::vector<int> tags;
+  lopi.m_fi.GetTags(tags);
   if (tag!=m_nin+m_nout) {
     THROW(fatal_error, "Internal error");
   }
+  if (m_LOpij<m_nin) lopi.m_ii.m_ps[m_LOpij].m_tag=-1;
+  else tags[m_LOpij-m_nin]=-1;
+  if (m_LOpk<m_nin) lopi.m_ii.m_ps[m_LOpk].m_tag=-2;
+  else tags[m_LOpk-m_nin]=-2;
+  lopi.m_fi.SetTags(tags);
 
   if (m_pi<m_nin) {
-    lopi.m_ii.m_ps[m_pi]=Subprocess_Info(m_flij,m_pinfo.m_ii.m_ps[m_pi].m_id,
-					 m_pinfo.m_ii.m_ps[m_pi].m_pol);
-    lopi.m_ii.m_ps[m_pi].m_tag=-1;
-    lopi.m_fi.m_ps.erase(FindInInfo(lopi.m_fi, m_pj-m_nin));
+    lopi.m_ii.m_ps[m_pi].m_fl=m_flij;
   }
   else {
-    lopi.m_fi.m_ps.erase(FindInInfo(lopi.m_fi, m_pi-m_nin));
-    lopi.m_fi.m_ps.erase(FindInInfo(lopi.m_fi, m_pj-m_nin-1));
-    vector<Subprocess_Info>::iterator part=FindInInfo(m_pinfo.m_fi, m_pi-m_nin);
-    lopi.m_fi.m_ps.push_back(Subprocess_Info(m_flij,part->m_id, part->m_pol));
-    lopi.m_fi.m_ps.back().m_tag=-1;
+    Flavour_Vector flavs(lopi.m_fi.GetExternal());
+    flavs[m_LOpij-m_nin]=m_flij;
+    lopi.m_fi.SetExternal(flavs);
   }
-  if (m_LOpk<m_nin) lopi.m_ii.m_ps[m_LOpk].m_tag=-2;
-  else FindInInfo(lopi.m_fi, m_LOpk-m_nin)->m_tag=-2;
-  DEBUG_VAR(lopi);
-  Flavour f0(lopi.m_ii.m_ps[0].m_fl);
-  SortFlavours(lopi);
+  bool found(false);
+  for (std::vector<Subprocess_Info>::iterator
+	 it(lopi.m_fi.m_ps.begin());it!=lopi.m_fi.m_ps.end();++it)
+    if (it->m_tag==m_LOpj) {
+      lopi.m_fi.m_ps.erase(it);
+      found=true;
+      break;
+    }
+  if (!found) THROW(fatal_error,"WOOF!");
 
   if (lopi.m_amegicmhv>0) {
     if (lopi.m_amegicmhv==12)
@@ -132,6 +139,8 @@ Single_DipoleTerm::Single_DipoleTerm(const Process_Info &pinfo,size_t pi,size_t 
   Process_Info cpi(p_LO_process->Info());
   m_subevt.m_pname=GenerateName(cpi.m_ii,cpi.m_fi);
   m_subevt.m_pname=m_subevt.m_pname.substr(0,m_subevt.m_pname.rfind("__"));
+
+  p_LO_process->SetSubEvt(&m_subevt);
 
   m_dalpha = 1.;
   double helpd;
@@ -245,17 +254,17 @@ bool Single_DipoleTerm::DetermineType() {
     if (m_fli==Flavour(kf_gluon)) {
       m_flij = m_flj;
       if (m_flj==m_fli) m_ftype = 4;
-      else if (!m_fli.IsSusy()) m_ftype = 2;
-      else if (m_fli.IsGluino()) m_ftype = 6;
-      else if (m_fli.IsSquark()) m_ftype = 8;
+      else if (!IsSusy(m_fli)) m_ftype = 2;
+      else if (IsGluino(m_fli)) m_ftype = 6;
+      else if (IsSquark(m_fli)) m_ftype = 8;
       else THROW(fatal_error,"SUSY particle in dipole term, but not squark or gluino");
     }
     else if (m_flj==Flavour(kf_gluon)) {
       m_flij = m_fli;
       if (m_flj==m_fli) m_ftype = 4;
-      else if (!m_fli.IsSusy()) m_ftype = 1;
-      else if (m_fli.IsGluino()) m_ftype = 5;
-      else if (m_fli.IsSquark()) m_ftype = 7;
+      else if (!IsSusy(m_fli)) m_ftype = 1;
+      else if (IsGluino(m_fli)) m_ftype = 5;
+      else if (IsSquark(m_fli)) m_ftype = 7;
       else THROW(fatal_error,"SUSY particle in dipole term, but not squark or gluino");
     }
     else if (m_flj==m_fli.Bar()) {
@@ -263,7 +272,7 @@ bool Single_DipoleTerm::DetermineType() {
 	m_ftype = 0;
 	break;
       }
-      if (!m_fli.IsSusy()) m_ftype = 3;
+      if (!IsSusy(m_fli)) m_ftype = 3;
       else {
         m_ftype = 0;
         break;
@@ -304,28 +313,6 @@ bool Single_DipoleTerm::DetermineType() {
 
   if (m_ftype==0) m_valid=false;
   return m_valid;
-}
-
-vector<Subprocess_Info>::iterator
-Single_DipoleTerm::FindInInfo(Subprocess_Info& fi, int idx) const
-{
-  // Find particle #idx in the given final state tree
-  // and make sure it is not part of a decay for the time being
-  int cnt=0;
-  for (size_t i=0; i<fi.m_ps.size(); ++i) {
-    cnt+=fi.m_ps[i].NExternal();
-    if (idx<cnt) {
-      if (fi.m_ps[i].NExternal()==1) {
-        return fi.m_ps.begin()+i;
-      }
-      else {
-        THROW(not_implemented,
-              "Dipole subtraction for coloured particles in decays not implemented yet.");
-      }
-    }
-  }
-  THROW(fatal_error, "Internal Error");
-  return fi.m_ps.end();
 }
 
 void Single_DipoleTerm::SetLOMomenta(const Vec4D* moms,const ATOOLS::Poincare &cms)
@@ -380,7 +367,7 @@ void Single_DipoleTerm::PrintLOmom()
 
 
 
-int Single_DipoleTerm::InitAmplitude(Model_Base *model,Topology* top,
+int Single_DipoleTerm::InitAmplitude(Amegic_Model *model,Topology* top,
 				    vector<Process_Base *> & links,
 				    vector<Process_Base *> & errs)
 {
@@ -427,8 +414,10 @@ int Single_DipoleTerm::InitAmplitude(Model_Base *model,Topology* top,
     m_valid=0;
     return status;
   }
-  SetOrderQCD(p_LO_process->OrderQCD()+1);
-  SetOrderEW(p_LO_process->OrderEW());
+  SetMaxOrders(p_LO_process->MaxOrders());
+  SetMinOrders(p_LO_process->MinOrders());
+  SetMaxOrder(0,p_LO_process->MaxOrder(0)+1);
+  SetMinOrder(0,p_LO_process->MinOrder(0)+1);
 
   p_dipole->SetCoupling(((Single_LOProcess*)p_LO_process->Partner())->CouplingMap());
   p_dipole->SetAlpha(m_dalpha);
@@ -489,7 +478,7 @@ double Single_DipoleTerm::Partonic(const Vec4D_Vector &_moms,const int mode)
     cms=Poincare(pp[0]+pp[1]);
     for (size_t i(0);i<pp.size();++i) cms.Boost(pp[i]);
   }
-  return operator()(&pp.front(),cms,mode);
+  return m_mewgtinfo.m_B=operator()(&pp.front(),cms,mode);
 }
 
 double Single_DipoleTerm::operator()(const ATOOLS::Vec4D * mom,const ATOOLS::Poincare &cms,const int _mode)
@@ -564,7 +553,7 @@ double Single_DipoleTerm::operator()(const ATOOLS::Vec4D * mom,const ATOOLS::Poi
 	 m_subevt.p_ampl->Leg(m_pj));
       for (Cluster_Amplitude *campl(m_subevt.p_ampl->Next());campl;campl=campl->Next()) {
 	for (size_t i(0);i<campl->Legs().size();++i) {
-	  if (p_partner!=this) {
+	  if (p_LO_process->Partner()!=p_LO_process) {
 	    Flavour fl(campl->Leg(i)->Flav());
 	    fl=ReMap(i<m_nin?fl.Bar():fl,campl->Leg(i)->Id());
 	    campl->Leg(i)->SetFlav(i<m_nin?fl.Bar():fl);
@@ -601,7 +590,8 @@ double Single_DipoleTerm::operator()(const ATOOLS::Vec4D * mom,const ATOOLS::Poi
 
   if (m_mcmode && p_dipole->MCSign()<0) df=-df;
 
-  m_lastxs = M2 * df * p_dipole->SPFac() * KFactor() * Norm();
+  m_lastxs = M2 * df * p_dipole->SPFac() * Norm();
+  if (m_lastxs) m_lastxs*=KFactor();
   m_subevt.m_me = m_subevt.m_mewgt = -m_lastxs;
   m_subevt.m_mu2[stp::fac] = p_scale->Scale(stp::fac);
   m_subevt.m_mu2[stp::ren] = p_scale->Scale(stp::ren);

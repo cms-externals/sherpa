@@ -32,12 +32,12 @@ namespace MODEL {
 }
 
 One_Running_AlphaS::One_Running_AlphaS(const double as_MZ,const double m2_MZ,
-			       const int order, const int thmode,
-			       PDF::PDF_Base *const aspdf,
+				       const int order, const int thmode,
+				       PDF::PDF_Base *const aspdf,
 				       One_Running_AlphaS *const mo) : 
   m_order(order), m_pdf(0),
   m_as_MZ(as_MZ), m_m2_MZ(m2_MZ),
-  p_pdf(aspdf), p_sas(NULL)
+  p_pdf(aspdf), p_sas(this)
 {
   p_thresh  = NULL;
 
@@ -56,6 +56,26 @@ One_Running_AlphaS::One_Running_AlphaS(const double as_MZ,const double m2_MZ,
   p_thresh        = new AsDataSet[m_nth+1]; 
   double * masses = new double[m_nth];
   
+  Data_Reader dataread(" ",";","!","=");
+  dataread.AddComment("#");
+  dataread.AddWordSeparator("\t");
+  int pdfas(dataread.GetValue<int>("USE_PDF_ALPHAS",0));
+  if (pdfas&4) {
+    std::string set = dataread.GetValue<std::string>("ALPHAS_PDF_SET","CT10nlo");
+    int member = dataread.GetValue<int>("ALPHAS_PDF_SET_VERSION",0);
+    if (s_kftable.find(kf_p_plus)==s_kftable.end()) s_kftable[kf_p_plus] =
+      new Particle_Info(kf_p_plus,0.938272,0,3,1,1,1,"P+","P^{+}");
+    p_pdf = PDF_Base::PDF_Getter_Function::GetObject
+      (set,PDF_Arguments(Flavour(kf_p_plus),&dataread,0, set, member));
+    msg_Info()<<METHOD<<"(): Using alphas from "<<set<<" ("<<member<<")"<<std::endl;
+  }
+  if (p_pdf && (pdfas&2)) {
+    p_pdf->SetAlphaSInfo();
+    const PDF::PDF_AS_Info &info(p_pdf->ASInfo());
+    if (info.m_order>=0)
+      for (int i(0);i<info.m_flavs.size();++i)
+	info.m_flavs[i].SetMass(info.m_flavs[i].m_mass);
+  }
   int count = 0;
   for(KFCode_ParticleInfo_Map::const_iterator kfit(s_kftable.begin());
       kfit!=s_kftable.end()&&kfit->first<=21;++kfit) {
@@ -67,9 +87,6 @@ One_Running_AlphaS::One_Running_AlphaS(const double as_MZ,const double m2_MZ,
   }
 
   if (p_pdf) {
-    Data_Reader dataread(" ",";","!","=");
-    dataread.AddComment("#");
-    dataread.AddWordSeparator("\t");
     if (dataread.GetValue<int>("OVERRIDE_PDF_INFO",0)==1) {
       msg_Error()<<om::bold<<METHOD<<"(): "<<om::reset<<om::red
 		 <<"Overriding \\alpha_s information from PDF. "
@@ -79,28 +96,29 @@ One_Running_AlphaS::One_Running_AlphaS(const double as_MZ,const double m2_MZ,
     else {
       const PDF::PDF_AS_Info &info(p_pdf->ASInfo());
       if (info.m_order>=0) {
-      if (mo==NULL) {
-      m_order=info.m_order;
-      m_as_MZ=info.m_asmz;
-      }
-      if (dataread.GetValue<int>("USE_PDF_ALPHAS",0)==1) m_pdf=1;
-      /*
-      m_nth=info.m_flavs.size()+1;
-      for (int i(0);i<m_nth;++i) {
-	masses[i]=sqr(info.m_flavs[i].m_mass);
-      }
-      masses[m_nth-1]=0.0;
-      */
-      if (mo && !IsEqual(m_as_MZ,mo->m_as_MZ,1.e-4) && m_pdf)
-	THROW(fatal_error,"Cannot use PDF alphas to vary \\mu_R");
-      if (mo==NULL || !IsEqual(m_as_MZ,mo->m_as_MZ)) {
-      msg_Info()<<METHOD<<"() {\n  Setting \\alpha_s according to PDF\n"
-		<<"  perturbative order "<<m_order
-		<<"\n  \\alpha_s(M_Z) = "<<m_as_MZ;
-      // msg_Info<<"\n  quark masses = { ";
-      // for (int i(0);i<m_nth-1;++i) msg_Info()<<sqrt(masses[i])<<" ";
-      msg_Info()<<"\n}"<<std::endl;
-      }
+        if (mo==NULL) {
+          m_order=info.m_order;
+          m_as_MZ=info.m_asmz;
+          m_m2_MZ=(info.m_mz2>0.?info.m_mz2:m_m2_MZ);
+        }
+        if (dataread.GetValue<int>("USE_PDF_ALPHAS",0)&1) m_pdf=1;
+        /*
+        m_nth=info.m_flavs.size()+1;
+        for (int i(0);i<m_nth;++i) {
+          masses[i]=sqr(info.m_flavs[i].m_mass);
+        }
+        masses[m_nth-1]=0.0;
+        */
+        if (mo && m_pdf && !IsEqual(m_as_MZ,mo->m_as_MZ,1.e-4))
+          THROW(fatal_error,"Cannot use PDF alphas to vary \\mu_R");
+        if (mo==NULL || !IsEqual(m_as_MZ,mo->m_as_MZ,1.e-4)) {
+          msg_Info()<<METHOD<<"() {\n  Setting \\alpha_s according to PDF\n"
+                    <<"  perturbative order "<<m_order
+                    <<"\n  \\alpha_s(M_Z) = "<<m_as_MZ;
+          // msg_Info<<"\n  quark masses = { ";
+          // for (int i(0);i<m_nth-1;++i) msg_Info()<<sqrt(masses[i])<<" ";
+          msg_Info()<<"\n}"<<std::endl;
+        }
       }
     }
   }
@@ -166,17 +184,125 @@ One_Running_AlphaS::One_Running_AlphaS(const double as_MZ,const double m2_MZ,
 
   if (mo==NULL) {
     double fac=ToType<double>(rpa->gen.Variable("RENORMALIZATION_SCALE_FACTOR"));
-    if (fac!=1.0) msg_Info()<<METHOD<<"(): Setting scale factor "<<fac<<"\n";
-    msg_Indent();
-    p_sas = new One_Running_AlphaS((*this)(fac*m2_MZ),m2_MZ,order,thmode,aspdf,this);
+    if (fac!=1.0) {
+      msg_Info()<<METHOD<<"(): Setting scale factor "<<fac<<"\n";
+      msg_Indent();
+      p_sas = new One_Running_AlphaS((*this)(fac*m_m2_MZ),m_m2_MZ,m_order,thmode,p_pdf,this);
+    }
   }
 }
 
+One_Running_AlphaS::One_Running_AlphaS(PDF::PDF_Base *const pdf) :
+  m_order(0), m_pdf(0), m_nth(0), m_mzset(0),
+  m_CF(4./3.), m_CA(3.), m_as_MZ(0.), m_m2_MZ(Flavour(kf_Z).Mass()),
+  m_cutq2(0.), p_thresh(NULL), p_pdf(pdf), p_sas(NULL)
+{
+  //------------------------------------------------------------
+  // SM thresholds for strong interactions, i.e. QCD
+  //------------------------------------------------------------
+  for(KFCode_ParticleInfo_Map::const_iterator kfit(s_kftable.begin());
+      kfit!=s_kftable.end()&&kfit->first<=21;++kfit) {
+    if (Flavour(kfit->first).Strong()) m_nth++;
+  }
+  p_thresh        = new AsDataSet[m_nth+1];
+  double * masses = new double[m_nth];
+
+  int count = 0;
+  for(KFCode_ParticleInfo_Map::const_iterator kfit(s_kftable.begin());
+      kfit!=s_kftable.end()&&kfit->first<=21;++kfit) {
+    Flavour flav(kfit->first);
+    if (flav.Strong()) {
+      masses[count] = sqr(flav.Mass(1));
+      count++;
+    }
+  }
+
+  Data_Reader dataread(" ",";","!","=");
+  dataread.AddComment("#");
+  dataread.AddWordSeparator("\t");
+  if (dataread.GetValue<int>("OVERRIDE_PDF_INFO",0)==1) {
+    THROW(fatal_error,"Cannot override PDF info.");
+  }
+  else {
+    const PDF::PDF_AS_Info &info(p_pdf->ASInfo());
+    if (info.m_order>=0) {
+      m_order=info.m_order;
+      m_as_MZ=info.m_asmz;
+      m_m2_MZ=(info.m_mz2>0.?info.m_mz2:m_m2_MZ);
+      if (dataread.GetValue<int>("USE_PDF_ALPHAS",0)==1) m_pdf=1;
+      msg_Tracking()<<METHOD<<"() {\n  Setting \\alpha_s according to PDF\n"
+                    <<"  perturbative order "<<m_order
+                    <<"\n  \\alpha_s(M_Z) = "<<m_as_MZ;
+      msg_Tracking()<<"\n  quark masses = { ";
+      for (int i(0);i<m_nth-1;++i) msg_Tracking()<<sqrt(masses[i])<<" ";
+      msg_Tracking()<<"}"<<std::endl;
+      msg_Tracking()<<"\n}"<<std::endl;
+    }
+  }
+
+  std::vector<double> sortmass(&masses[0],&masses[m_nth]);
+  std::sort(sortmass.begin(),sortmass.end(),std::less<double>());
+  for (int i(0);i<m_nth;++i) masses[i]=sortmass[i];
+
+  int j   = 0;
+  for (int i=0; i<m_nth; ++j) {
+    if ((masses[i]>m_m2_MZ)&&(!m_mzset)) {
+      //insert Z boson (starting point for any evaluation)
+      m_mzset               = j;
+      p_thresh[j].low_scale = m_m2_MZ;
+      p_thresh[j].as_low    = m_as_MZ;
+      p_thresh[j].nf        = i-1;
+    }
+    else {
+      p_thresh[j].low_scale = masses[i];
+      p_thresh[j].as_low    = 0.;
+      p_thresh[j].nf        = i;
+      ++i;
+    }
+    if (j>0) {
+      p_thresh[j-1].high_scale = p_thresh[j].low_scale;
+      p_thresh[j-1].as_high    = p_thresh[j].as_low;
+    }
+  }
+  if (!m_mzset) {
+    int j                    = m_nth;
+    m_mzset                  = j;
+    p_thresh[j].low_scale    = m_m2_MZ;
+    p_thresh[j].as_low       = m_as_MZ;
+    p_thresh[j-1].high_scale = m_m2_MZ;
+    p_thresh[j-1].as_high    = m_as_MZ;
+    p_thresh[j].nf           = p_thresh[j-1].nf;
+  }
+  p_thresh[m_nth].high_scale   = 1.e20;
+  p_thresh[m_nth].as_high      = 0.;
+
+  delete [] masses;
+
+  for (int i=m_mzset;i<=m_nth;++i) {
+    Lambda2(i);
+    p_thresh[i].as_high       = AlphaSLam(p_thresh[i].high_scale,i);
+    if (i<m_nth) {
+      p_thresh[i+1].as_low    = p_thresh[i].as_high *
+        InvZetaOS2(p_thresh[i].as_high,p_thresh[i].high_scale,p_thresh[i].high_scale,p_thresh[i].nf);
+    }
+  }
+  for (int i=m_mzset-1;i>=0;--i) {
+    double lam2               = Lambda2(i);
+    p_thresh[i].as_low        = AlphaSLam(p_thresh[i].low_scale,i);
+    if ((lam2>p_thresh[i].low_scale) || (p_thresh[i].as_low>1.)) ContinueAlphaS(i);
+    else {
+      if (i>0) {
+        p_thresh[i-1].as_high = p_thresh[i].as_low *
+          ZetaOS2(p_thresh[i].as_low,p_thresh[i].low_scale,p_thresh[i].low_scale,p_thresh[i-1].nf);
+      }
+    }
+  }
+}
 
 One_Running_AlphaS::~One_Running_AlphaS()
 {
   if (p_thresh!=0) { delete [] p_thresh; p_thresh = NULL; }
-  if (p_sas) delete p_sas;
+  if (p_sas && p_sas!=this) delete p_sas;
 }
 
 double One_Running_AlphaS::Beta0(const int nf) {
@@ -213,7 +339,7 @@ double One_Running_AlphaS::Lambda2(const int nr) {
   double & beta0   = p_thresh[nr].beta0;
   double * b       = p_thresh[nr].b;
   double & lambda2 = p_thresh[nr].lambda2;
-  
+
   // calculate beta coefficients
   beta0 = Beta0(nf);
   b[1]  = Beta1(nf)/beta0;
@@ -389,7 +515,7 @@ double One_Running_AlphaS::operator[](double q2)
 double One_Running_AlphaS::operator()(double q2)
 {
   if (m_pdf) return p_pdf->AlphaSPDF(q2);
-  double as;
+  double as(0.);
   if (q2<0.) q2=-q2;
   int i = m_mzset-1;
   if (q2<=m_m2_MZ) {
@@ -415,14 +541,28 @@ double  One_Running_AlphaS::AlphaS(const double q2){
   return operator()(q2);
 }
 
-int One_Running_AlphaS::Nf(const double sc)
+int One_Running_AlphaS::Nf(const double q2)
 {
-  double q2(sc);
   for (int i=0;i<=m_nth;++i) {
     if (q2<=p_thresh[i].high_scale && q2>p_thresh[i].low_scale )
       return p_thresh[i].nf;
   }
   return m_nth;
+}
+
+std::vector<double> One_Running_AlphaS::Thresholds(double q12,double q22)
+{
+  if (q12>q22) std::swap(q12,q22);
+  std::vector<double> thrs;
+  int nf(0);
+  for (int i=0;i<=m_nth;++i) {
+    if (q12<=p_thresh[i].low_scale && p_thresh[i].low_scale<q22 &&
+        p_thresh[i].nf>nf) {
+      thrs.push_back(p_thresh[i].low_scale);
+    }
+    nf=p_thresh[i].nf;
+  }
+  return thrs;
 }
 
 void One_Running_AlphaS::SelfTest() {
@@ -456,6 +596,7 @@ Running_AlphaS::Running_AlphaS(const double as_MZ,const double m2_MZ,
                                const int order, const int thmode,
                                const PDF::ISR_Handler_Map &isr)
 {
+  m_defval=as_MZ;
   m_type  = std::string("Running Coupling");
   m_name  = "Alpha_QCD";
   for (ISR_Handler_Map::const_iterator it=isr.begin(); it!=isr.end(); ++it) {
@@ -487,5 +628,16 @@ void Running_AlphaS::SetActiveAs(PDF::isr::id id)
   }
   else {
     p_active=it->second;
+  }
+}
+
+One_Running_AlphaS * Running_AlphaS::GetAs(PDF::isr::id id)
+{
+  AlphasMap::iterator it=m_alphas.find(id);
+  if (it==m_alphas.end()) {
+    THROW(fatal_error, "Internal Error");
+  }
+  else {
+    return it->second;
   }
 }

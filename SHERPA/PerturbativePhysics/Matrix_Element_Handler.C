@@ -45,7 +45,7 @@ Matrix_Element_Handler::Matrix_Element_Handler
   read.SetInputFile(m_file);
   if (!read.ReadFromFile(m_respath,"RESULT_DIRECTORY")) m_respath="Results";
   m_respath=ShortenPathName(m_respath);
-  if (rpa->gen.Variable("PATH_PIECE")!="")
+  if (m_respath[0]!='/' && rpa->gen.Variable("PATH_PIECE")!="")
     m_respath=rpa->gen.Variable("PATH_PIECE")+"/"+m_respath;
   std::string evtm;
   if (!read.ReadFromFile(evtm,"EVENT_GENERATION_MODE")) evtm="PartiallyUnweighted";
@@ -137,7 +137,6 @@ bool Matrix_Element_Handler::CalculateTotalXSecs()
   }
   bool okay(true);
   for (size_t i=0;i<m_procs.size();++i) {
-    m_procs[i]->SetUpThreading();
     m_procs[i]->SetLookUp(true);
     if (!m_procs[i]->CalculateTotalXSec(m_respath,false)) okay=false;
     m_procs[i]->SetLookUp(false);
@@ -186,7 +185,7 @@ bool Matrix_Element_Handler::GenerateOneEvent()
       }
     }
     if (proc==NULL) THROW(fatal_error,"No process selected");
-    PHASIC::Weight_Info *info=proc->OneEvent(m_eventmode);
+    ATOOLS::Weight_Info *info=proc->OneEvent(m_eventmode);
     p_proc=proc->Selected();
     if (p_proc->Generator()==NULL)
       THROW(fatal_error,"No generator for process '"+p_proc->Name()+"'");
@@ -275,6 +274,7 @@ std::vector<Process_Base*> Matrix_Element_Handler::InitializeProcess
 	rpi.m_fi.SetNLOType(pi.m_fi.NLOType()&(nlo_type::real|nlo_type::rsub));
 	rpi.m_integrator=rpi.m_rsintegrator;
 	rpi.m_megenerator=rpi.m_rsmegenerator;
+	rpi.m_itmin=rpi.m_rsitmin;
 	if (m_rsadd) {
 	  if (pi.m_fi.m_nloqcdtype==nlo_type::lo) {
 	    rpi.m_fi.m_ps.push_back(Subprocess_Info(kf_photon,"",""));
@@ -346,6 +346,8 @@ int Matrix_Element_Handler::InitializeProcesses
 	    <<FormatTime(size_t(etime-btime))<<" )."<<std::endl;
   if (m_procs.empty() && m_gens.size()>0)
     THROW(normal_exit,"No hard process found");
+  if (m_gens.NewLibraries())
+    THROW(normal_exit,"Source code created. Run './makelibs' to compile.");
   msg_Info()<<METHOD<<"(): Performing tests "<<std::flush;
   rbtime=retime;
   btime=etime;
@@ -402,6 +404,11 @@ void Matrix_Element_Handler::BuildProcesses()
     THROW(missing_input,"No data in "+m_path+m_processfile+"'.");
   for (size_t nf(0);nf<procdata.size();++nf) {
     std::vector<std::string> &cur(procdata[nf]);
+    if(cur.size()==0) continue;
+    if(cur[0].find("Order(")!=std::string::npos)
+      THROW(fatal_error,
+	    std::string("Syntax error in coupling order specification: '"+cur[0]+"'\n")
+	    +"   Whitespace between 'Order' and brackets is mandatory");
     if (cur.size()<2) continue;
     if (cur[0]=="Process") {
       Process_Info pi;
@@ -427,16 +434,35 @@ void Matrix_Element_Handler::BuildProcesses()
 	    long int kfc(ToType<long int>(cur[i]));
 	    pi.m_nodecs.push_back(Flavour(abs(kfc),kfc<0));
 	  }
+	if (cur[0]=="Order") {
+	  std::string cb(MakeString(cur,1));
+	  ExtractMPvalues(cb,pbi.m_vcpl,nf);
+        }
+	if (cur[0]=="Max_Order") {
+	  std::string cb(MakeString(cur,1));
+	  ExtractMPvalues(cb,pbi.m_vmaxcpl,nf);
+	}
+	if (cur[0]=="Min_Order") {
+	  std::string cb(MakeString(cur,1));
+	  ExtractMPvalues(cb,pbi.m_vmincpl,nf);
+	}
 	if (cur[0]=="Order_EW") {
-	  std::string cb(MakeString(cur,1));
-	  ExtractMPvalues(cb,pbi.m_voew,nf);
+          THROW(fatal_error,
+                std::string("You are using the obsolete setting:\n")
+                +"    'Order_EW "+MakeString(cur,1)+"'\n"+
+                +"  Please refer to the Sherpa manual for how to transition "
+                +"to the new 'Order (<qcd>, <ew>[, ...])' syntax, e.g. using:\n"
+                +"    'Order (*,"+MakeString(cur,1)+")'");
         }
-	if (cur[0]=="Order_QCD") {
-	  std::string cb(MakeString(cur,1));
-	  ExtractMPvalues(cb,pbi.m_voqcd,nf);
+	if (cur[0]=="Max_Order_EW" ||
+            cur[0]=="Max_Order_QCD" ||
+            cur[0]=="Order_QCD") {
+          THROW(fatal_error,
+                std::string("You are using an obsolete (Max_)Order_* setting) ")
+                +"in your processes section. Please refer to the Sherpa manual "
+                +"for how to transition to the new "
+                +"'Order (<qcd>, <ew>[, ...])' syntax.");
         }
-	if (cur[0]=="Max_Order_EW") pi.m_maxoew=ToType<int>(cur[1]);
-	if (cur[0]=="Max_Order_QCD") pi.m_maxoqcd=ToType<int>(cur[1]);
 	if (cur[0]=="Cut_Core") pbi.m_cutcore=ToType<int>(cur[1]);
 	if (cur[0]=="CKKW") {
 	  if (p_shower==NULL || p_shower->GetShower()==NULL)
@@ -475,6 +501,10 @@ void Matrix_Element_Handler::BuildProcesses()
 	if (cur[0]=="Print_Graphs") {
 	  std::string cb(MakeString(cur,1));
 	  ExtractMPvalues(cb,pbi.m_vgpath,nf);
+	}
+	if (cur[0]=="Name_Suffix") {
+	  std::string cb(MakeString(cur,1));
+	  ExtractMPvalues(cb,pbi.m_vaddname,nf);
 	}
 	if (cur[0]=="Enable_MHV") {
 	  std::string cb(MakeString(cur,1));
@@ -552,6 +582,14 @@ void Matrix_Element_Handler::BuildProcesses()
 	  std::string cb(MakeString(cur,1));
 	  ExtractMPvalues(cb,pbi.m_vrsint,nf);
 	}
+	if (cur[0]=="PSI_ItMin") {
+	  std::string cb(MakeString(cur,1));
+	  ExtractMPvalues(cb,pbi.m_vitmin,nf);
+        }
+	if (cur[0]=="RS_PSI_ItMin") {
+	  std::string cb(MakeString(cur,1));
+	  ExtractMPvalues(cb,pbi.m_vrsitmin,nf);
+        }
         pi.p_gens=&m_gens;
 	if (cur[0]=="End" && cur[1]=="process") break;
       }
@@ -669,8 +707,35 @@ void Matrix_Element_Handler::BuildSingleProcessList
 	cpi.m_fi.m_nloqcdtype=pi.m_fi.m_nloqcdtype;
 	cpi.m_fi.m_nloewtype=pi.m_fi.m_nloewtype;
 	cpi.m_fi.SetNMax(pi.m_fi);
-	if (GetMPvalue(pbi.m_voew,nfs,pnid,di)) cpi.m_oew=di;
-	if (GetMPvalue(pbi.m_voqcd,nfs,pnid,di)) cpi.m_oqcd=di;
+	if (GetMPvalue(pbi.m_vmaxcpl,nfs,pnid,ds)) {
+	  Data_Reader read(",",";",")","(");
+	  read.SetString(ds);
+	  read.VectorFromString(cpi.m_maxcpl,"");
+	}
+	if (GetMPvalue(pbi.m_vmincpl,nfs,pnid,ds)) {
+	  Data_Reader read(",",";",")","(");
+	  read.SetString(ds);
+	  read.VectorFromString(cpi.m_mincpl,"");
+	}
+	if (GetMPvalue(pbi.m_vcpl,nfs,pnid,ds)) {
+	  Data_Reader read(",",";",")","(");
+	  while (ds.find("*")!=std::string::npos) ds.replace(ds.find("*"),1,"-1");
+	  read.SetString(ds);
+	  read.VectorFromString(cpi.m_maxcpl,"");
+	  cpi.m_mincpl=cpi.m_maxcpl;
+	  for (size_t i(0);i<cpi.m_maxcpl.size();++i)
+	    if (cpi.m_maxcpl[i]<0) {
+	      cpi.m_mincpl[i]=0;
+	      cpi.m_maxcpl[i]=99;
+	    }
+	}
+	size_t maxsize(Min(cpi.m_mincpl.size(),cpi.m_maxcpl.size()));
+	for (size_t i(0);i<maxsize;++i)
+	  if (cpi.m_mincpl[i]>cpi.m_maxcpl[i]) {
+	    msg_Error()<<METHOD<<"(): Invalid coupling orders: "
+		       <<cpi.m_mincpl<<" .. "<<cpi.m_maxcpl<<"\n";
+	    THROW(inconsistent_option,"Please correct coupling orders");
+	  }
 	if (GetMPvalue(pbi.m_vscale,nfs,pnid,ds)) cpi.m_scale=ds;
 	if (GetMPvalue(pbi.m_vcoupl,nfs,pnid,ds)) cpi.m_coupling=ds;
 	if (GetMPvalue(pbi.m_vkfac,nfs,pnid,ds)) cpi.m_kfactor=ds;
@@ -681,6 +746,7 @@ void Matrix_Element_Handler::BuildSingleProcessList
 	if (GetMPvalue(pbi.m_vntchan,nfs,pnid,di)) cpi.m_ntchan=di;
 	if (GetMPvalue(pbi.m_vmtchan,nfs,pnid,di)) cpi.m_mtchan=di;
 	if (GetMPvalue(pbi.m_vgpath,nfs,pnid,ds)) cpi.m_gpath=ds;
+	if (GetMPvalue(pbi.m_vaddname,nfs,pnid,ds)) cpi.m_addname=ds;
 	if (GetMPvalue(pbi.m_vnloqcdmode,nfs,pnid,ds)) {
 	  if      (ds=="Fixed_Order" || ds=="1") pi.m_nlomode=cpi.m_nlomode=1;
 	  else if (ds=="MC@NLO"      || ds=="3") pi.m_nlomode=cpi.m_nlomode=3;
@@ -713,10 +779,16 @@ void Matrix_Element_Handler::BuildSingleProcessList
 	if (GetMPvalue(pbi.m_vmegen,nfs,pnid,ds)) cpi.m_megenerator=ds;
 	if (GetMPvalue(pbi.m_vrsmegen,nfs,pnid,ds)) cpi.m_rsmegenerator=ds;
 	else cpi.m_rsmegenerator=cpi.m_megenerator;
-	if (GetMPvalue(pbi.m_vloopgen,nfs,pnid,ds)) cpi.m_loopgenerator=ds;
+	if (GetMPvalue(pbi.m_vloopgen,nfs,pnid,ds)) {
+	  m_gens.LoadGenerator(ds);
+	  cpi.m_loopgenerator=ds;
+	}
 	if (GetMPvalue(pbi.m_vint,nfs,pnid,ds)) cpi.m_integrator=ds;
 	if (GetMPvalue(pbi.m_vrsint,nfs,pnid,ds)) cpi.m_rsintegrator=ds;
 	else cpi.m_rsintegrator=cpi.m_integrator;
+	if (GetMPvalue(pbi.m_vitmin,nfs,pnid,di)) cpi.m_itmin=di;
+	if (GetMPvalue(pbi.m_vrsitmin,nfs,pnid,di)) cpi.m_rsitmin=di;
+	else cpi.m_rsitmin=cpi.m_itmin;
 	std::vector<Process_Base*> proc=InitializeProcess(cpi,pmap);
 	for (size_t i(0);i<proc.size();i++) {
 	  if (proc[i]==NULL)
@@ -743,8 +815,6 @@ void Matrix_Element_Handler::BuildSingleProcessList
       }
     }
   }
-  if (pi.m_ckkw && rpa->gen.NumberOfEvents()==0)
-    THROW(fatal_error,"Number of events cannot be zero in CKKW mode");
   for (size_t i(0);i<procs.size();++i) {
     Process_Info &cpi(procs[i]->Info());
     Selector_Key skey(NULL,new Data_Reader(),true);
@@ -976,7 +1046,8 @@ std::string Matrix_Element_Handler::MakeString
 }
 
 double Matrix_Element_Handler::GetWeight
-(const Cluster_Amplitude &ampl,const nlo_type::code type) const
+(const Cluster_Amplitude &ampl,
+ const nlo_type::code type,const int mode) const
 {
   std::string name(Process_Base::GenerateName(&ampl));
   for (int i(0);i<m_pmaps.size();++i) {
@@ -988,7 +1059,10 @@ double Matrix_Element_Handler::GetWeight
       ci->GeneratePoint();
       for (size_t j(0);j<ampl.Legs().size();++j)
 	ampl.Leg(j)->SetCol(ColorID(ci->I()[j],ci->J()[j]));
-      return pit->second->Differential(ampl);
+      if (mode&1) ci->SetWOn(false);
+      double res(pit->second->Differential(ampl));
+      ci->SetWOn(true);
+      return res;
     }
   }
   return 0.0;

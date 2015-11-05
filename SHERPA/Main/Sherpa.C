@@ -42,6 +42,8 @@ Sherpa::Sherpa() :
   m_trials = 100;
   m_debuginterval = 0;
   m_debugstep = -1;
+  m_displayinterval = 100;
+  m_evt_starttime = -1.0;
   exh->AddTerminatorObject(this);
 }
 
@@ -56,7 +58,7 @@ Sherpa::~Sherpa()
   delete ATOOLS::rpa;
   delete ATOOLS::ran;
 #ifdef USING__MPI
-  int dummy;
+  int dummy=0;
   MPI::COMM_WORLD.Bcast(&dummy,1,MPI::INT,0);
 #endif  
   delete ATOOLS::msg;
@@ -135,6 +137,9 @@ bool Sherpa::InitializeTheRun(int argc,char * argv[])
       m_debugstep=debugstep;
       ran->ReadInStatus(("random."+ToString(m_debugstep)+".dat").c_str());
     }
+
+    m_displayinterval=read.GetValue<int>("EVENT_DISPLAY_INTERVAL",100);
+    
     return res;
   }
   msg_Error()<<"Error in Sherpa::InitializeRun("<<m_path<<")"<<endl
@@ -180,6 +185,9 @@ bool Sherpa::InitializeTheEventHandler()
   if (!anas->empty()) p_eventhandler->AddEventPhase(new Analysis_Phase(anas));
   if (!outs->empty()) p_eventhandler->AddEventPhase(new Output_Phase(outs,p_eventhandler));
   p_eventhandler->PrintGenericEventStructure();
+
+  msg->SetLevel(p_inithandler->DataReader()->GetValue<int>("EVT_OUTPUT",msg->Level()));
+
   return 1;
 }
 
@@ -193,6 +201,9 @@ bool Sherpa::GenerateOneEvent(bool reset)
     if (m_debugstep>=0) {
       ran->ReadInStatus(("random."+ToString(m_debugstep)+".dat").c_str());
     }
+
+    if (m_evt_starttime<0.0) m_evt_starttime=rpa->gen.Timer().RealTime();
+    
     if (reset) p_eventhandler->Reset();
     if (p_eventhandler->GenerateEvent(p_inithandler->Mode())) {
       if(m_debuginterval>0 && rpa->gen.NumberOfGeneratedEvents()%m_debuginterval==0){
@@ -208,8 +219,8 @@ bool Sherpa::GenerateOneEvent(bool reset)
         THROW(normal_exit,"Debug event written.");
       }
       rpa->gen.SetNumberOfGeneratedEvents(rpa->gen.NumberOfGeneratedEvents()+1);
+      Blob_List *blobs(p_eventhandler->GetBlobs());
       if (msg_LevelIsEvents()) {
-	Blob_List *blobs(p_eventhandler->GetBlobs());
 	if (!blobs->empty()) {
 	  msg_Out()<<"  -------------------------------------------------  "<<std::endl;
 	  for (Blob_List::iterator blit=blobs->begin();blit!=blobs->end();++blit) 
@@ -218,6 +229,41 @@ bool Sherpa::GenerateOneEvent(bool reset)
 	}
 	else msg_Out()<<"  ******** Empty event ********  "<<std::endl;
       }
+
+      for (Blob_List::const_iterator bit=blobs->begin(); bit!=blobs->end();++bit) {
+          double currQ = (*bit)->CheckChargeConservation();
+          if (fabs(currQ)>1e-12) {
+              msg_Error() << "Charge conservation failed, aborting: " << currQ << "\n";
+              msg_Error() << (**bit) << "\n";
+              abort();
+          }
+      }
+
+      int i=rpa->gen.NumberOfGeneratedEvents();
+      int nevt=rpa->gen.NumberOfEvents();
+      msg_Events()<<"Sherpa : Passed "<<i<<" events."<<std::endl;
+      int exp;
+      for (exp=5; i/int(pow(10,exp))==0; --exp) {}
+      if (((rpa->gen.BatchMode()&4 && i%m_displayinterval==0) ||
+           (!(rpa->gen.BatchMode()&4) && i%int(pow(10,exp))==0)) &&
+          i<rpa->gen.NumberOfEvents()) {
+        double diff=rpa->gen.Timer().RealTime()-m_evt_starttime;
+        msg_Info()<<"  Event "<<i<<" ( "
+                  <<FormatTime(size_t(diff))<<" elapsed / "
+                  <<FormatTime(size_t((nevt-i)/(double)i*diff))
+                  <<" left ) -> ETA: "<<rpa->gen.Timer().
+          StrFTime("%a %b %d %H:%M",time_t((nevt-i)/(double)i*diff))<<"  ";
+        double xs(GetEventHandler()->TotalXSMPI());
+        double err(GetEventHandler()->TotalErrMPI());
+        if (!(rpa->gen.BatchMode()&2)) msg_Info()<<"\n  ";
+        msg_Info()<<"XS = "<<xs<<" pb +- ( "<<err<<" pb = "
+                  <<((int(err/xs*10000))/100.0)<<" % )  ";
+        if (!(rpa->gen.BatchMode()&2))
+          msg_Info()<<mm(1,mm::up);
+        if (rpa->gen.BatchMode()&2) { msg_Info()<<std::endl; }
+        else { msg_Info()<<bm::cr<<std::flush; }
+      }
+      
       return 1;
     }
     return 0;
@@ -266,7 +312,14 @@ void Sherpa::PrepareTerminate()
 }
 
 bool Sherpa::SummarizeRun() 
-{ 
+{
+  if (p_eventhandler) {
+    msg_Info()<<"  Event "<<rpa->gen.NumberOfEvents()<<" ( "
+              <<size_t(rpa->gen.Timer().RealTime()-m_evt_starttime)
+              <<" s total ) = "
+              << rpa->gen.NumberOfEvents()*3600*24/((size_t) rpa->gen.Timer().RealTime()-m_evt_starttime)
+              <<" evts/day                    "<<std::endl;
+  }
   p_eventhandler->Finish(); 
   return true; 
 }
@@ -281,10 +334,10 @@ const Blob_List &Sherpa::GetBlobList() const
   return *p_eventhandler->GetBlobs();
 }
 
-double Sherpa::GetMEWeight(const Cluster_Amplitude &ampl) const
+double Sherpa::GetMEWeight(const Cluster_Amplitude &ampl,const int mode) const
 {
   return p_inithandler->GetMatrixElementHandler()->
-    GetWeight(ampl,PHASIC::nlo_type::lo);
+    GetWeight(ampl,PHASIC::nlo_type::lo,mode);
 }
 
 void Sherpa::DrawLogo(const int mode) 
@@ -322,8 +375,8 @@ void Sherpa::DrawLogo(const int mode)
 	    <<"     SHERPA version "<<SHERPA_VERSION<<"."<<SHERPA_SUBVERSION<<" ("<<SHERPA_NAME<<")"<<std::endl
 	    <<"                                                                             "<<std::endl
 	    <<"     Authors:        Stefan Hoeche, Frank Krauss, Silvan Kuttimalai,         "<<std::endl
-	    <<"                     Marek Schoenherr, Steffen Schumann, Frank Siegert,      "<<std::endl
-            <<"                     Korinna Zapp."<<std::endl
+	    <<"                     Marek Schoenherr, Holger Schulz, Steffen Schumann,      "<<std::endl
+	    <<"                     Frank Siegert, Korinna Zapp."<<std::endl
 	    <<"     Former Authors: Timo Fischer, Tanju Gleisberg, Hendrik Hoeth,           "<<std::endl
 	    <<"                     Ralf Kuhn, Thomas Laubrich, Andreas Schaelicke,         "<<std::endl
 	    <<"                     Jan Winter                                              "<<std::endl
@@ -337,7 +390,7 @@ void Sherpa::DrawLogo(const int mode)
 	    <<"                                                                             "<<std::endl
 	    <<"     Please visit also our homepage                                          "<<std::endl
 	    <<"                                                                             "<<std::endl
-	    <<"       http://www.sherpa-mc.de                                               "<<std::endl
+	    <<"       http://sherpa.hepforge.org                                            "<<std::endl
 	    <<"                                                                             "<<std::endl
 	    <<"     for news, bugreports, updates and new releases.                         "<<std::endl
 	    <<"                                                                             "<<std::endl

@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("MCATNLO/Main","branches/rel-2-1-1","24084","ee3f66955b5310dae2f84d7992b80287");
+("MCATNLO/Main","trunk/SHERPA","26134","93a3cb54b784c831e2b4113c2886a95d");

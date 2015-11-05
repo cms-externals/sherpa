@@ -43,7 +43,7 @@ namespace AMEGIC {
     bool m_force_init, m_sccmur, m_kpcemode;
     bool m_checkborn, m_checkpoles, m_checkfinite;
     double m_checkpolesthreshold;
-    int m_bvimode, m_user_bvimode;
+    int m_bvimode, m_user_bvimode, m_imode, m_checkloopmap;
 
     double m_bsum, m_vsum, m_isum, m_n;
     double m_mbsum, m_mvsum, m_misum, m_mn;
@@ -90,7 +90,7 @@ namespace AMEGIC {
   public:
     void                AddChannels(std::list<std::string>*);
     bool                NewLibs();
-    int                 InitAmplitude(MODEL::Model_Base *,Topology *,
+    int                 InitAmplitude(Amegic_Model *,Topology *,
 				      std::vector<Process_Base *> &,
 				      std::vector<Process_Base *> &);
     bool                SetUpIntegrator();
@@ -133,6 +133,7 @@ namespace AMEGIC {
 
     bool Combinable(const size_t &idi,const size_t &idj);
     const ATOOLS::Flavour_Vector &CombinedFlavour(const size_t &idij);
+    void FillProcessMap(PHASIC::NLOTypeStringProcessMap_Map *apmap);
 
   protected:
     double         Calc_Imassive(const ATOOLS::Vec4D *mom);
@@ -141,7 +142,7 @@ namespace AMEGIC {
     double         Get_KPterms(PDF::PDF_Base *pdfa, PDF::PDF_Base *pdfb,
 			       const double&,const double&,ATOOLS::Flavour_Vector&); 
     void           CheckPoleCancelation(const ATOOLS::Vec4D*);
-    void           FillMEwgts(ATOOLS::ME_wgtinfo&);
+    void           FillMEwgts(ATOOLS::ME_Weight_Info&);
     void           EndOptimize();
 
   };

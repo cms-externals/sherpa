@@ -32,7 +32,8 @@ using namespace std;
 
 AMEGIC::Single_Process::Single_Process():
   m_gen_str(2), p_hel(0), p_BS(0), p_ampl(0), p_shand(0), p_psgen(0), p_partner(this)
-{ }
+{
+}
 
 AMEGIC::Single_Process::~Single_Process()
 {
@@ -77,12 +78,12 @@ bool AMEGIC::Single_Process::CheckAlternatives(vector<Process_Base *>& links,str
     from.Open();
     *from>>name>>factor;
     m_sfactor *= factor;
-    for (size_t j=0;j<links.size();j++) {
+    for (size_t j=0;j<links.size();j++) if (Type()==links[j]->Type()) {
       if (links[j]->Name()==name) {
 	p_mapproc = p_partner = (Single_Process*)links[j];
 	m_iresult = p_partner->Result()*m_sfactor;
-	m_oqcd=p_partner->OrderQCD();
-	m_oew=p_partner->OrderEW();
+	m_maxcpl=p_partner->MaxOrders();
+	m_mincpl=p_partner->MinOrders();
 	m_ntchanmin=p_partner->NTchanMin();
 	msg_Tracking()<<"Found Alternative process: "<<m_name<<" "<<name<<endl;
 
@@ -99,6 +100,7 @@ bool AMEGIC::Single_Process::CheckAlternatives(vector<Process_Base *>& links,str
 	}
 	from.Close();
 	InitFlavmap(p_partner);
+	FillCombinations();
 	return true;
       }
     }
@@ -109,15 +111,14 @@ bool AMEGIC::Single_Process::CheckAlternatives(vector<Process_Base *>& links,str
   return false;
 }
 
-int AMEGIC::Single_Process::InitAmplitude(Model_Base * model,Topology* top,
+int AMEGIC::Single_Process::InitAmplitude(Amegic_Model *model,Topology* top,
 					  vector<Process_Base *> & links,
 					  vector<Process_Base *> & errs)
 {
   Init();
-  model->GetCouplings(m_cpls);
-  if (!model->CheckFlavours(m_nin,m_nout,&m_flavs.front())) return 0;
+  model->p_model->GetCouplings(m_cpls);
+  if (!model->p_model->CheckFlavours(m_nin,m_nout,&m_flavs.front())) return 0;
   m_newlib   = false;
-  m_libnumb  = 0;
   m_pslibname = m_libname = ToString(m_nin)+"_"+ToString(m_nout);
   if (m_gen_str>1) m_ptypename = "P"+m_libname;
   else m_ptypename = "N"+m_libname;
@@ -128,10 +129,6 @@ int AMEGIC::Single_Process::InitAmplitude(Model_Base * model,Topology* top,
   }
   string newpath=rpa->gen.Variable("SHERPA_CPP_PATH");
   ATOOLS::MakeDir(newpath);
-  if (!FileExists(newpath+"/makelibs")) {
-    Copy(rpa->gen.Variable("SHERPA_SHARE_PATH")+"/makelibs",
-	     newpath+"/makelibs");
-  }
 
   if (CheckAlternatives(links,Name())) return 1;
 
@@ -154,12 +151,20 @@ int AMEGIC::Single_Process::InitAmplitude(Model_Base * model,Topology* top,
   }
   else p_BS     = new Basic_Sfuncs(m_nin+m_nout,m_nin+m_nout,&m_flavs.front(),p_b);  
   p_BS->Setk0(s_gauge);
-  p_shand  = new String_Handler(m_gen_str,p_BS,model->GetVertex()->GetCouplings());
-  int oew(m_oew), oqcd(m_oqcd), ntchanmin(m_ntchanmin);
-  p_ampl   = new Amplitude_Handler(m_nin+m_nout,&m_flavs.front(),p_b,p_pinfo,model,top,oqcd,oew,ntchanmin,
-				   &m_cpls,p_BS,p_shand,m_print_graphs,!directload);
-  m_oew=oew;
-  m_oqcd=oqcd;
+  p_shand  = new String_Handler(m_gen_str,p_BS,model->p_model->GetCouplings());
+  int ntchanmin(m_ntchanmin);
+  bool cvp(reader.GetValue<int>("AMEGIC_CUT_MASSIVE_VECTOR_PROPAGATORS",1));
+  p_ampl   = new Amplitude_Handler(m_nin+m_nout,&m_flavs.front(),p_b,p_pinfo,model,top,m_maxcpl,m_mincpl,ntchanmin,
+                                   &m_cpls,p_BS,p_shand,m_print_graphs,!directload,cvp);
+  string sfname = rpa->gen.Variable("SHERPA_CPP_PATH")+"/Process/Amegic/"+m_ptypename+"/"+Name()+".sym";
+  if (FileExists(sfname)) {
+    My_In_File in(sfname);
+    if (!in.Open()) THROW(fatal_error,"Cannot open "+sfname);
+    double symf;
+    *in>>symf;
+    m_Norm*=symf;
+    in.Close();
+  }
   if (p_ampl->GetGraphNumber()==0) {
     msg_Tracking()<<"AMEGIC::Single_Process::InitAmplitude : No diagrams for "<<m_name<<"."<<endl;
     return 0;
@@ -172,6 +177,7 @@ int AMEGIC::Single_Process::InitAmplitude(Model_Base * model,Topology* top,
 	m_sfactor = sqr(m_sfactor);
 	msg_Tracking()<<"AMEGIC::Single_Process::InitAmplitude : Found compatible process for "<<Name()<<" : "<<links[j]->Name()<<endl;
 	  
+	bool found(true);
 	if (!FoundMappingFile(m_libname,m_pslibname)) {
 	  string mlname = rpa->gen.Variable("SHERPA_CPP_PATH")+"/Process/Amegic/"+m_ptypename+"/"+links[j]->Name();
 	  string mnname = rpa->gen.Variable("SHERPA_CPP_PATH")+"/Process/Amegic/"+m_ptypename+"/"+Name();
@@ -183,12 +189,16 @@ int AMEGIC::Single_Process::InitAmplitude(Model_Base * model,Topology* top,
 	    }
             My_In_File::CopyInDB(mlname+".col",mnname+".col");
 	  }
-	  WriteAlternativeName(p_partner->Name());
+	  found=false;
 	}
 
 	p_mapproc = p_partner = (Single_Process*)links[j];
 	m_iresult = p_partner->Result()*m_sfactor;
+	for (std::map<string,Flavour>::const_iterator fit=p_ampl->GetFlavourmap().begin();
+	     fit!=p_ampl->GetFlavourmap().end();fit++) AddtoFlavmap(fit->first,fit->second);
 	InitFlavmap(p_partner);
+	FillCombinations();
+	if (!found) WriteAlternativeName(p_partner->Name());
 
 	Minimize();
 	return 1;
@@ -204,6 +214,7 @@ int AMEGIC::Single_Process::InitAmplitude(Model_Base * model,Topology* top,
     }
     if (!TestLib()) return 0;
     links.push_back(this);
+    FillCombinations();
     msg_Info()<<".";
     Minimize();
     return 1;
@@ -213,40 +224,16 @@ int AMEGIC::Single_Process::InitAmplitude(Model_Base * model,Topology* top,
 			     top,p_BS,m_ptypename+string("/")+m_name);
   m_pol.Add_Extern_Polarisations(p_BS,&m_flavs.front(),p_hel);
   p_BS->Initialize();
+  FillCombinations();
 
   int result(Tests());
   switch (result) {
     case 2 : 
-    for (size_t j=0;j<links.size();j++) if (Type()==links[j]->Type()) {
-	if (FlavCompare(links[j]) && ATOOLS::IsEqual(links[j]->Result(),Result())) {
-	if (CheckMapping(links[j])&&p_ampl->CheckEFMap()) {
-	  msg_Tracking()<<"AMEGIC::Single_Process::InitAmplitude : "<<std::endl
-			<<"   Found an equivalent partner process for "<<m_name<<" : "<<links[j]->Name()<<std::endl
-			<<"   Map processes."<<std::endl;
-	  p_mapproc = p_partner = (Single_Process*)links[j];
-	  InitFlavmap(p_partner);
-	  break;
-	}
-      } 
-    }
     if (p_partner==this) links.push_back(this);
     Minimize();
     WriteAlternativeName(p_partner->Name());
     return 1;
   case 1 :
-    for (size_t j=0;j<links.size();j++) {
-      if (FlavCompare(links[j]) && ATOOLS::IsEqual(links[j]->Result(),Result())) {
-	if (CheckMapping(links[j])&&p_ampl->CheckEFMap()) {
-	  msg_Tracking()<<"AMEGIC::Single_Process::InitAmplitude : "<<std::endl
-			<<"   Found a partner for process "<<m_name<<" : "<<links[j]->Name()<<std::endl;
-	  p_mapproc = p_partner   = (Single_Process*)links[j];
-	  m_pslibname = links[j]->PSLibName();
-	  WriteAlternativeName(p_partner->Name());
-	  InitFlavmap(p_partner);
-	  break;
-	}
-      } 
-    }
     if (Result()==0.) return -3;
     if (p_partner==this) links.push_back(this);
 
@@ -271,7 +258,7 @@ int AMEGIC::Single_Process::InitAmplitude(Model_Base * model,Topology* top,
   case -3: return 0;
   default :
     msg_Error()<<"ERROR in AMEGIC::Single_Process::InitAmplitude : "<<std::endl
-	       <<"   Failed for "<<m_name<<"."<<endl;
+	       <<"   Failed for "<<m_name<<" with result "<<result<<"."<<endl;
     errs.push_back(this);
     return 0;
   }
@@ -371,7 +358,7 @@ int AMEGIC::Single_Process::Tests()
 
   if (gauge_test) {
     if (!ATOOLS::IsEqual(M2,M2g)) {
-      msg_Out()<<"WARNING:  Gauge test not satisfied: "
+      msg_Info()<<"WARNING:  Gauge test not satisfied: "
 	       <<M2<<" vs. "<<M2g<<" : "<<dabs(M2/M2g-1.)*100.<<"%"<<endl
 	       <<"Gauge(1): "<<abs(M2)<<endl
 	       <<"Gauge(2): "<<abs(M2g)<<endl;
@@ -425,15 +412,15 @@ int AMEGIC::Single_Process::Tests()
     }
     if (!ATOOLS::IsEqual(M2,M2g)) {
       if (abs(M2/M2g-1.)>rpa->gen.Accu()) {
-	msg_Out()<<"WARNING: Library cross check not satisfied: "
+	msg_Info()<<"WARNING: Library cross check not satisfied: "
 		 <<M2<<" vs. "<<M2g<<"  difference:"<<abs(M2/M2g-1.)*100.<<"%"<<endl
 		 <<"   Mapping file(1) : "<<abs(M2)<<endl
 		 <<"   Original    (2) : "<<abs(M2g)<<endl
 		 <<"   Cross check (T) : "<<abs(M2/M2g-1.)*100.<<"%"<<endl;
-	return 0;
+	THROW(critical_error,"Check output above. Increase NUM_ACCURACY if you wish to skip this test.");
       }
       else {
-	msg_Out()<<"WARNING: Library cross check not satisfied: "
+	msg_Info()<<"WARNING: Library cross check not satisfied: "
 		 <<M2<<" vs. "<<M2g<<"  difference:"<<abs(M2/M2g-1.)*100.<<"%"<<endl
 		 <<"   assuming numerical reasons with small numbers, continuing "<<endl;
       }
@@ -488,12 +475,12 @@ int AMEGIC::Single_Process::Tests()
       }
       M2S *= sqr(m_pol.Massless_Norm(m_nin+m_nout,&m_flavs.front(),p_BS));
       if (!ATOOLS::IsEqual(M2g,M2S)) {
-	msg_Out()<<"WARNING: String test not satisfied: "
+	msg_Info()<<"WARNING: String test not satisfied: "
 		 <<M2g<<" vs. "<<M2S<<"  difference:"<<abs(M2g/M2S-1.)*100.<<"%"<<endl;
 	if (abs(M2g/M2S-1.)>rpa->gen.Accu()) {
-	  return 0;
+	  THROW(critical_error,"Check output above. Increase NUM_ACCURACY if you wish to skip this test.");
 	}
-	msg_Out()<<"         assuming numerical reasons, continuing "<<endl;
+	msg_Info()<<"         assuming numerical reasons, continuing "<<endl;
       }
       return 1;
     }
@@ -539,7 +526,7 @@ int AMEGIC::Single_Process::TestLib()
   }
   delete[] M_doub;
   m_iresult = M2 * sqr(m_pol.Massless_Norm(m_nin+m_nout,&m_flavs.front(),p_BS));
-  if (m_iresult>0.) return 1;
+  if (m_iresult>0. || m_iresult<0.) return 1;
   return 0;
 }
 
@@ -551,13 +538,12 @@ int AMEGIC::Single_Process::CheckLibraries() {
   String_Handler * shand1;
   shand1      = new String_Handler(p_shand->Get_Generator());
   
-  m_libnumb  = 0;
   string proc = rpa->gen.Variable("SHERPA_CPP_PATH")+string("/Process/Amegic/")+m_ptypename+string("/V");
   string testname;
   double M2s, helvalue;
 
   for (;;) {
-    testname  = CreateLibName()+string("_")+ToString(m_libnumb);
+    testname  = CreateLibName();
     if (shand1->SearchValues(m_gen_str,testname,p_BS)) {
       shand1->Calculate();
       
@@ -579,7 +565,6 @@ int AMEGIC::Single_Process::CheckLibraries() {
       }
     } 
     else break;
-    ++m_libnumb;
   }
   if (shand1) { delete shand1; shand1 = 0; }
   return 0;
@@ -620,36 +605,24 @@ int AMEGIC::Single_Process::CheckStrings(Single_Process* tproc)
 void AMEGIC::Single_Process::WriteLibrary() 
 {
   if (m_gen_str<2) return;
-  string testname;
   string newpath=rpa->gen.Variable("SHERPA_CPP_PATH")+string("/Process/Amegic/");
-  for (;;) {
-    testname    = CreateLibName()+string("_")+ToString(m_libnumb);
-    if (!(FileExists(newpath+m_ptypename+string("/")+testname+string("/V.H")))) break;
-    ++m_libnumb;
-  }
-  m_libname = testname;
+  m_libname = CreateLibName();
   if (p_partner==this) m_pslibname = m_libname;
                   else m_pslibname = p_partner->PSLibName();
+  if (!FileExists(newpath+m_ptypename+string("/")+m_libname+string("/V.H"))) {
   ATOOLS::MakeDir(newpath+m_ptypename+"/"+m_libname); 
   p_shand->Output(p_hel,m_ptypename+string("/")+m_libname);
+  }
   CreateMappingFile(this);
   p_BS->Output(newpath+m_ptypename+string("/")+m_libname);
   p_ampl->StoreAmplitudeConfiguration(newpath+m_ptypename+string("/")+m_libname);
   m_newlib=true;
+  if (!FileExists(rpa->gen.Variable("SHERPA_CPP_PATH")+"/makelibs"))
+    Copy(rpa->gen.Variable("SHERPA_SHARE_PATH")+"/makelibs",
+	 rpa->gen.Variable("SHERPA_CPP_PATH")+"/makelibs");
   msg_Info()<<"AMEGIC::Single_Process::WriteLibrary : "<<std::endl
 	    <<"   Library for "<<m_name<<" has been written, name is "<<m_libname<<std::endl;
   sync();
-}
-
-std::string  AMEGIC::Single_Process::CreateLibName()
-{
-  string name=m_ptypename;
-  name+="_"+ToString(p_ampl->GetGraphNumber());
-  name+="_"+ToString(p_shand->NumberOfCouplings());
-  name+="_"+ToString(p_shand->NumberOfZfuncs());
-  name+="_"+ToString(p_hel->MaxHel());
-  name+="_"+ToString(p_BS->MomlistSize());
-  return name;
 }
 
 void AMEGIC::Single_Process::CreateMappingFile(Single_Process* partner) {
@@ -671,7 +644,6 @@ void AMEGIC::Single_Process::CreateMappingFile(Single_Process* partner) {
   *to<<"ME: "<<m_libname<<endl
     <<"PS: "<<m_pslibname<<endl;
   p_shand->Get_Generator()->WriteCouplings(*to);
-  partner->WriteMomFlavs(*to);
   to.Close();
 }
 
@@ -754,6 +726,7 @@ bool AMEGIC::Single_Process::SetUpIntegrator()
 
 bool AMEGIC::Single_Process::CreateChannelLibrary()
 {
+  if (p_partner!=this || p_psgen) return true;
   p_psgen     = new Phase_Space_Generator(m_nin,m_nout);
   bool newch  = 0;
   if (m_nin>=1)  newch = p_psgen->Construct(p_channellibnames,m_ptypename,m_pslibname,&m_flavs.front(),this); 
@@ -775,41 +748,36 @@ void AMEGIC::Single_Process::Minimize()
   if (p_ampl)     {delete p_ampl; p_ampl=0;}
   if (p_psgen)    {delete p_psgen; p_psgen=0;}
 
-  m_oqcd      = p_partner->OrderQCD();
-  m_oew       = p_partner->OrderEW();
+  m_maxcpl    = p_partner->MaxOrders();
+  m_mincpl    = p_partner->MinOrders();
   m_ntchanmin = p_partner->NTchanMin();
 }
 
 double AMEGIC::Single_Process::Partonic(const Vec4D_Vector &_moms,const int mode) 
 { 
-  if (mode==1) return m_lastxs;
-  if (!Selector()->Result()) return m_lastxs = 0.0;
+  if (mode==1) return m_mewgtinfo.m_B=m_lastxs;
+  if (!Selector()->Result()) return m_mewgtinfo.m_B=m_lastxs=0.0;
   if (!(IsMapped() && LookUp())) {
     p_partner->ScaleSetter()->CalculateScale(_moms,m_cmode);
   }
-  return DSigma(_moms,m_lookup); 
+  return m_mewgtinfo.m_B=DSigma(_moms,m_lookup);
 }
 
 double AMEGIC::Single_Process::DSigma(const ATOOLS::Vec4D_Vector &_moms,bool lookup)
 {
   m_lastxs = 0.;
-  if (m_nin==2) {
-    for (size_t i=0;i<m_nin+m_nout;i++) {
-      if (_moms[i][0]<m_flavs[i].Mass()) return 0.0;
-    }
-  }
-  if (m_nin==1) {
-    for (size_t i=m_nin;i<m_nin+m_nout;i++) {
-      if (_moms[i][0]<m_flavs[i].Mass()) return 0.0;
-    }
+  Vec4D_Vector mom(_moms);
+  if (m_nin==2 && p_int->ISR() && p_int->ISR()->On()) {
+    Poincare cms=Poincare(mom[0]+mom[1]);
+    for (size_t i(0);i<mom.size();++i) cms.Boost(mom[i]);
   }
   if (p_partner == this) {
-    m_lastxs = m_Norm * operator()((ATOOLS::Vec4D*)&_moms.front());
+    m_lastxs = m_Norm * operator()((ATOOLS::Vec4D*)&mom.front());
   }
   else {
     if (lookup && p_partner->m_lookup)
       m_lastxs = p_partner->LastXS()*m_sfactor;
-    else m_lastxs = m_Norm * p_partner->operator()((ATOOLS::Vec4D*)&_moms.front())*m_sfactor;
+    else m_lastxs = m_Norm * p_partner->operator()((ATOOLS::Vec4D*)&mom.front())*m_sfactor;
   }
   return m_lastxs;
 }
@@ -942,6 +910,35 @@ void AMEGIC::Single_Process::FillCombinations()
 #ifdef DEBUG__Fill_Combinations
   msg_Debugging()<<METHOD<<"(): '"<<m_name<<"' {\n";
 #endif
+  std::string fname=rpa->gen.Variable("SHERPA_CPP_PATH")
+    +"/Process/Amegic/"+m_ptypename+"/"+m_name+".clu";
+  if (FileExists(fname)) {
+    My_In_File from(fname);
+    if (!from.Open()) THROW(critical_error,"No clu for "+m_name);
+    size_t size(0);
+    *from>>size;
+    for (size_t i(0);i<size;++i) {
+      size_t ida(0), idb(0);
+      *from>>ida>>idb;
+      m_ccombs.insert(std::pair<size_t,size_t>(ida,idb));
+    }
+    *from>>size;
+    for (size_t i(0);i<size;++i) {
+      size_t id(0), fsize(0);
+      *from>>id>>fsize;
+      m_cflavs[id].resize(fsize);
+      for (size_t j(0);j<fsize;++j) {
+	long int fl(0);
+	*from>>fl;
+	m_cflavs[id][j]=Flavour(abs(fl),fl<0);
+      }
+    }
+    std::string eof;
+    *from>>eof;
+    if (eof!="eof") THROW(critical_error,"Corrupted clu for "+m_name);
+    from.Close();
+    return;
+  }
   size_t nd(p_partner->NumberOfDiagrams());
   for (size_t i(0);i<nd;++i) {
     Point *p(p_partner->Diagram(i));
@@ -954,12 +951,27 @@ void AMEGIC::Single_Process::FillCombinations()
 		 <<" combinations\n";
   msg_Debugging()<<"}\n";
 #endif
+  My_Out_File to(fname);
+  to.Open();
+  *to<<m_ccombs.size()<<"\n";
+  for (Combination_Set::const_iterator
+	 cit(m_ccombs.begin());cit!=m_ccombs.end();++cit)
+    *to<<cit->first<<" "<<cit->second<<"\n";
+  *to<<m_cflavs.size()<<"\n";
+  for (CFlavVector_Map::const_iterator
+	 cit(m_cflavs.begin());cit!=m_cflavs.end();++cit) {
+    *to<<cit->first<<" "<<cit->second.size();
+    for (Flavour_Vector::const_iterator fit(cit->second.begin());
+	 fit!=cit->second.end();++fit) *to<<" "<<(long int)*fit;
+    *to<<"\n";
+  }
+  *to<<"eof\n";
+  to.Close();
 }
 
 bool AMEGIC::Single_Process::Combinable
 (const size_t &idi,const size_t &idj)
 {
-  if (m_ccombs.empty()) FillCombinations();
   Combination_Set::const_iterator 
     cit(m_ccombs.find(std::pair<size_t,size_t>(idi,idj)));
   return cit!=m_ccombs.end();
@@ -968,7 +980,6 @@ bool AMEGIC::Single_Process::Combinable
 const Flavour_Vector &AMEGIC::Single_Process::
 CombinedFlavour(const size_t &idij)
 {
-  if (m_cflavs.empty()) FillCombinations();
   CFlavVector_Map::const_iterator fit(m_cflavs.find(idij));
   if (fit==m_cflavs.end()) THROW(fatal_error,"Invalid request");
   return fit->second;

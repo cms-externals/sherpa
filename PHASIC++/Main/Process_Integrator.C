@@ -28,7 +28,7 @@ static int s_genresdir(0);
 Process_Integrator::Process_Integrator(Process_Base *const proc):
   p_proc(proc), p_pshandler(NULL),
   p_beamhandler(NULL), p_isrhandler(NULL),
-  m_nin(0), m_nout(0), m_smode(1), m_swmode(0),
+  m_nin(0), m_nout(0), m_smode(0), m_swmode(0),
   m_threshold(0.), m_enhancefac(1.0), m_maxeps(0.0), m_rsfac(1.0),
   m_n(0), m_itmin(0), m_max(0.), m_totalxs(0.), 
   m_totalsum (0.), m_totalsumsqr(0.), m_totalerr(0.), m_ssum(0.), 
@@ -511,54 +511,19 @@ void Process_Integrator::MPISync()
 #ifdef USING__MPI
   int size=MPI::COMM_WORLD.Get_size();
   if (size>1) {
-    int rank=mpi->HasMPISend()?mpi->MPISend().Get_rank():0;
-    double val[5];
-    if (mpi->HasMPIRecv()) {
-      for (int tag=1;tag<mpi->MPIRecv().Get_size();++tag) {
-	mpi->MPIRecv().Recv(&val,5,MPI::DOUBLE,MPI::ANY_SOURCE,tag);
-	m_msn+=val[0];
-	m_mssum+=val[2];
-	m_mssumsqr+=val[3];
-	m_max=ATOOLS::Max(m_max,val[4]);
-	m_smax=ATOOLS::Max(m_smax,val[1]);
-      }
-      if (rank) {
-	val[0]=m_msn;
-	val[2]=m_mssum;
-	val[3]=m_mssumsqr;
-	val[4]=m_max;
-	val[1]=m_smax;
-	mpi->MPISend().Send(&val,5,MPI::DOUBLE,0,rank);
-	mpi->MPISend().Recv(&val,5,MPI::DOUBLE,0,size+rank);
-	m_msn=val[0];
-	m_mssum=val[2];
-	m_mssumsqr=val[3];
-	m_max=val[4];
-	m_smax=val[1];
-      }
-      val[0]=m_msn;
-      val[2]=m_mssum;
-      val[3]=m_mssumsqr;
-      val[4]=m_max;
-      val[1]=m_smax;
-      for (int tag=1;tag<mpi->MPIRecv().Get_size();++tag) {
-	mpi->MPIRecv().Send(&val,5,MPI::DOUBLE,tag,size+tag);
-      }
-    }
-    else {
-      val[0]=m_msn;
-      val[2]=m_mssum;
-      val[3]=m_mssumsqr;
-      val[4]=m_max;
-      val[1]=m_smax;
-      mpi->MPISend().Send(&val,5,MPI::DOUBLE,0,rank);
-      mpi->MPISend().Recv(&val,5,MPI::DOUBLE,0,size+rank);
-      m_msn=val[0];
-      m_mssum=val[2];
-      m_mssumsqr=val[3];
-      m_max=val[4];
-      m_smax=val[1];
-    }
+    double sval[3], mval[2];
+    sval[0]=m_msn;
+    sval[1]=m_mssum;
+    sval[2]=m_mssumsqr;
+    mval[0]=m_max;
+    mval[1]=m_smax;
+    mpi->MPIComm()->Allreduce(MPI_IN_PLACE,sval,3,MPI::DOUBLE,MPI::SUM);
+    mpi->MPIComm()->Allreduce(MPI_IN_PLACE,mval,2,MPI::DOUBLE,MPI::MAX);
+    m_msn=sval[0];
+    m_mssum=sval[1];
+    m_mssumsqr=sval[2];
+    m_max=mval[0];
+    m_smax=mval[1];
   }
   m_sn+=m_msn;
   m_ssum+=m_mssum;
@@ -589,6 +554,17 @@ void Process_Integrator::SetISRThreshold(const double threshold)
   m_threshold=threshold;
 }
 
+void Process_Integrator::StoreBackupResults()
+{
+#ifdef USING__MPI
+  if (MPI::COMM_WORLD.Get_rank()) return;
+#endif
+  if (!FileExists(m_resultpath+".db")) return;
+  if (!Copy(m_resultpath+".db",m_resultpath+".db.bak",true))
+    msg_Error()<<METHOD<<"(): Copy error. "
+	       <<strerror(errno)<<"."<<std::endl;
+}
+
 void Process_Integrator::StoreResults(const int mode)
 {
   MPISync();
@@ -604,6 +580,7 @@ void Process_Integrator::StoreResults(const int mode)
   WriteOutHistogram(m_resultpath+"/"+p_proc->Generator()->Name()+"/WD_"+fname);
   p_pshandler->WriteOut(m_resultpath+"/"+p_proc->Generator()->Name()+"/MC_"+fname);
   My_In_File::ExecDB(m_resultpath+"/","commit");
+  StoreBackupResults();
 }
 
 void Process_Integrator::ReadResults()

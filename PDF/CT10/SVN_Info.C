@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("PDF/CT10","branches/rel-2-1-1","24084","662fc7239cce205bffac3f5fa218dead");
+("PDF/CT10","trunk/SHERPA","26134","eed55f03d11c884373395946e6bf7a2d");

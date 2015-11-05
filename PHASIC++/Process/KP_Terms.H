@@ -17,6 +17,7 @@ namespace PHASIC {
 
   class KP_Terms {
   private:
+    int m_imode;
 
     Process_Base    *p_proc;
     Flavour_Kernels *p_flkern;
@@ -26,7 +27,7 @@ namespace PHASIC {
 
     ATOOLS::Flavour_Vector m_flavs;
 
-    bool   m_massive, m_cemode;
+    bool   m_massive, m_cemode, m_negativepdf;
     double m_a, m_loga, m_kpca[8], m_kpcb[8], m_cpldef;
 
     std::vector<std::vector<double> > m_dsij;
@@ -57,7 +58,7 @@ namespace PHASIC {
     void SetAlpha(const double &aff,const double &afi=-1.0,
 		  const double &aif=-1.0,const double &aii=-1.0);
 
-    void FillMEwgts(ATOOLS::ME_wgtinfo &wgt);
+    void FillMEwgts(ATOOLS::ME_Weight_Info &wgt);
 
     void SetDSij(const std::vector<std::vector<double> > &ds);
 
@@ -66,6 +67,7 @@ namespace PHASIC {
     inline Flavour_Kernels *FlavKern() const { return p_flkern;   }
     inline Massive_Kernels *MassKern() const { return p_masskern; }
 
+    inline void SetIMode(int imode) { m_imode=imode; }
   };// end of class KP_Terms
 
 };// end of namespace PHASIC

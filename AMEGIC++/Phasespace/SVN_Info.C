@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("AMEGIC++/Phasespace","branches/rel-2-1-1","24084","1b5c1ae5cb0a3f114e823ccfe727bb76");
+("AMEGIC++/Phasespace","trunk/SHERPA","26134","2b35d9e9c5545ac0e81233491a5a57d5");

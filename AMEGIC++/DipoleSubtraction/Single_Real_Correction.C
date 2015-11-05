@@ -77,12 +77,12 @@ Single_Real_Correction::~Single_Real_Correction()
 
   ------------------------------------------------------------------------------*/
 
-int Single_Real_Correction::InitAmplitude(Model_Base * model,Topology* top,
+int Single_Real_Correction::InitAmplitude(Amegic_Model * model,Topology* top,
 					vector<Process_Base *> & links,
 					vector<Process_Base *> & errs)
 {
   Init();
-  if (!model->CheckFlavours(m_nin,m_nout,&m_flavs.front())) return 0;
+  if (!model->p_model->CheckFlavours(m_nin,m_nout,&m_flavs.front())) return 0;
 
   m_valid    = true;
   m_newlib   = false;
@@ -116,8 +116,8 @@ int Single_Real_Correction::InitAmplitude(Model_Base * model,Topology* top,
   else {
   status = p_tree_process->InitAmplitude(model,top,links,errs);
 
-  SetOrderQCD(p_tree_process->OrderQCD());
-  SetOrderEW(p_tree_process->OrderEW());
+  m_maxcpl=p_tree_process->MaxOrders();
+  m_mincpl=p_tree_process->MinOrders();
   if (p_tree_process->Partner()->NewLibs()) m_newlib = 1;
 
   m_iresult=p_tree_process->Result();
@@ -166,7 +166,7 @@ int Single_Real_Correction::InitAmplitude(Model_Base * model,Topology* top,
     if (m_flavs[i].Strong()) partlist.push_back(i);
   }
   for (size_t i=0;i<partlist.size();i++) {
-    for (size_t j=0;j<partlist.size();j++) {
+    for (size_t j=i+1;j<partlist.size();j++) {
       for (size_t k=0;k<partlist.size();k++) if (k!=i&&k!=j&&i!=j) {
 	Single_DipoleTerm *pdummy = new Single_DipoleTerm(cinfo,partlist[i],partlist[j],partlist[k],p_int);
 	if (pdummy->IsValid()) {
@@ -189,7 +189,7 @@ int Single_Real_Correction::InitAmplitude(Model_Base * model,Topology* top,
     Process_Info sinfo(m_pinfo);
     sinfo.m_fi.m_nloqcdtype=nlo_type::lo;
     sinfo.m_fi.m_nloewtype=nlo_type::lo;
-    for (size_t i=0;i<m_flavs.size();i++) if (m_flavs[i].IsSusy()){
+    for (size_t i=0;i<m_flavs.size();i++) if (IsSusy(m_flavs[i])){
       for (size_t j=0;j<partlist.size();j++) if (i!=partlist[j]) {
         for (size_t swit=0;swit<5;swit++) {
   	  Single_OSTerm *pdummy = new Single_OSTerm(sinfo,i,partlist[j],swit,p_int);
@@ -208,6 +208,9 @@ int Single_Real_Correction::InitAmplitude(Model_Base * model,Topology* top,
         }
       }
     }
+  }
+  if (m_no_tree) {
+    if (m_subtermlist.empty() && m_subostermlist.empty()) return 0;
   }
 
   if (p_mapproc && !p_partner->NewLibs()) Minimize();
@@ -267,9 +270,9 @@ bool Single_Real_Correction::SetUpIntegrator()
 void Single_Real_Correction::SetLookUp(const bool lookup)
 {
   m_lookup=lookup; 
-  if (p_tree_process) p_tree_process->SetLookUp(lookup);
+  if (p_tree_process) p_tree_process->SetLookUp(false);
   for (size_t i=0;i<m_subtermlist.size();i++) 
-    m_subtermlist[i]->SetLookUp(lookup);
+    m_subtermlist[i]->SetLookUp(false);
 }
 
 void Single_Real_Correction::Minimize()
@@ -397,6 +400,7 @@ double Single_Real_Correction::operator()(const ATOOLS::Vec4D_Vector &_mom,const
 
   if (!m_no_tree)
   if (res) {
+  p_tree_process->ScaleSetter()->SetCaller(p_tree_process);
   m_realevt.m_mu2[stp::fac]=p_tree_process->ScaleSetter()->CalculateScale(_mom,m_cmode);
   m_realevt.m_mu2[stp::ren]=p_tree_process->ScaleSetter()->Scale(stp::ren);
   m_realevt.m_mu2[stp::res]=p_tree_process->ScaleSetter()->Scale(stp::res);
@@ -419,7 +423,7 @@ double Single_Real_Correction::operator()(const ATOOLS::Vec4D_Vector &_mom,const
     double real = p_tree_process->operator()(&mom.front())*p_tree_process->Norm();
     m_realevt.m_me += real;
     m_realevt.m_mewgt += real;
-    if (IsBad(m_realevt.m_me)) res=false;
+    if (IsBad(m_realevt.m_me) || real == 0. ) res=false;
   }
   for (size_t i(0);i<m_subevtlist.size();++i) {
     if (m_subevtlist[i]->m_trig==false || !res)
@@ -619,8 +623,10 @@ void Single_Real_Correction::SetSelectorOn(const bool on)
 
 void Single_Real_Correction::FillProcessMap(NLOTypeStringProcessMap_Map *apmap)
 {
-  Process_Base::FillProcessMap(apmap);
-  p_tree_process->FillProcessMap(apmap);
+  if (!m_no_tree) {
+    Process_Base::FillProcessMap(apmap);
+    p_tree_process->FillProcessMap(apmap);
+  }
   for (size_t i=0;i<m_subtermlist.size();++i)
     m_subtermlist[i]->FillProcessMap(apmap);
 }

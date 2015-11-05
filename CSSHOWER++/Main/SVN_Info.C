@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("CSSHOWER++/Main","branches/rel-2-1-1","24084","d9f16dc115ba945677634d358e453c1a");
+("CSSHOWER++/Main","trunk/SHERPA","26134","76c54ffb80eb2bf043d3984e6d3b3d23");

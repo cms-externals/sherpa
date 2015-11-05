@@ -44,6 +44,7 @@ namespace SHERPA {
     std::string m_softcollisiondat, m_softphotonsdat;
     std::string m_processesdat;
     std::string m_selectordat;
+    std::string m_momentadat;
 
     double              m_bunch_splimits[2];
     ATOOLS::Flavour     m_bunch_particles[2];
@@ -69,6 +70,9 @@ namespace SHERPA {
     Analysis_Vector              m_analyses;
     Output_Vector                m_outputs;
     void ShowParameterSyntax();
+    void CheckVersion();
+    bool CompareVersions(const size_t& a1,const size_t& b1,const size_t& c1,
+                         const size_t& a2,const size_t& b2,const size_t& c2);
     void LoadLibraries() const;
   private :
     bool InitializeTheIO();
@@ -115,7 +119,7 @@ namespace SHERPA {
     Analysis_Vector              * GetAnalyses()                    { return &m_analyses;       }
     Output_Vector                * GetOutputs()                     { return &m_outputs;        }
     MODEL::Model_Base            * GetModel()                 const { return p_model;           }
-    PDF::ISR_Handler_Map              * GetISRHandlers()                 { return &m_isrhandlers;    }
+    PDF::ISR_Handler_Map         * GetISRHandlers()                 { return &m_isrhandlers;    }
     BEAM::Beam_Spectra_Handler   * GetBeamSpectraHandler()    const { return p_beamspectra;     }
     Hard_Decay_Handler           * GetHardDecayHandler()      const { return p_harddecays;      }
     const Shower_Handler_Map     & GetShowerHandlers()        const { return m_showerhandlers;   }

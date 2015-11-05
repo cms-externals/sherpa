@@ -23,6 +23,7 @@
 #include "ATOOLS/Org/MyStrStream.H"
 #include "ATOOLS/Org/Data_Reader.H"
 #include "ATOOLS/Org/Message.H"
+#include "ATOOLS/Phys/Weight_Info.H"
 
 using namespace ATOOLS;
 using namespace PHASIC;
@@ -84,32 +85,46 @@ void MCatNLO_Process::Init(const Process_Info &pi,
   p_ddproc=InitProcess(spi,nlo_type::real|nlo_type::rsub,1);
   spi.m_integrator=spi.m_rsintegrator;
   spi.m_megenerator=spi.m_rsmegenerator;
+  spi.m_itmin=spi.m_rsitmin;
   p_rsproc=InitProcess(spi,nlo_type::real|nlo_type::rsub,1|2);
   p_rsproc->FillProcessMap(p_apmap);
   p_bviproc->FillProcessMap(p_apmap);
   p_ddproc->FillProcessMap(p_apmap);
-  p_bviproc->SetSProc(p_ddproc);
   p_bproc->SetLookUp(false);
   p_rproc->SetLookUp(false);
   p_bproc->SetParent(this);
   p_rproc->SetParent(this);
   p_bproc->FillProcessMap(p_apmap);
+  p_rproc->FillProcessMap(p_apmap);
   Data_Reader read(" ",";","!","=");
   read.SetInputPath(rpa->GetPath());
   read.SetInputFile(rpa->gen.Variable("INTEGRATION_DATA_FILE"));
   if (!read.ReadFromFile(m_hpsmode,"PP_HPSMODE")) m_hpsmode=8;
   else msg_Info()<<METHOD<<"(): Set H event shower mode "<<m_hpsmode<<".\n";
+  if (!read.ReadFromFile(m_kfacmode,"PP_KFACTOR_MODE")) m_kfacmode=0;
+  else msg_Info()<<METHOD<<"(): Set K-factor mode "<<m_kfacmode<<".\n";
   if (!read.ReadFromFile(m_fomode,"PP_FOMODE")) m_fomode=0;
   else msg_Info()<<METHOD<<"(): Set fixed order mode "<<m_fomode<<".\n";
   if (!m_fomode) {
+    p_bviproc->SetSProc(p_ddproc);
     p_bviproc->SetMCMode(1);
     p_ddproc->SetMCMode(2);
     p_rsproc->SetMCMode(2);
   }
-  if (p_rsproc->Size()!=p_rproc->Size())
+  if (p_rsproc->Size()!=p_rproc->Size()) {
+    for (size_t i(0);i<p_rproc->Size();++i)
+      msg_Debugging()<<"["<<i<<"]R : "<<(*p_rproc)[i]->Name()<<std::endl;
+    for (size_t i(0);i<p_rsproc->Size();++i)
+      msg_Debugging()<<"["<<i<<"]RS:  "<<(*p_rsproc)[i]->Name()<<std::endl;
     THROW(fatal_error,"R and RS have different size");
-  if (p_bproc->Size()!=p_bviproc->Size())
+  }
+  if (p_bproc->Size()!=p_bviproc->Size()) {
+    for (size_t i(0);i<p_bproc->Size();++i)
+      msg_Debugging()<<"["<<i<<"]B:   "<<(*p_bproc)[i]->Name()<<std::endl;
+    for (size_t i(0);i<p_bviproc->Size();++i)
+      msg_Debugging()<<"["<<i<<"]BVI: "<<(*p_bviproc)[i]->Name()<<std::endl;
     THROW(fatal_error,"B and BVI have different size");
+  }
   for (size_t i(0);i<p_rsproc->Size();++i)
     if ((*p_rsproc)[i]->Flavours()!=(*p_rproc)[i]->Flavours())
       THROW(fatal_error,"Ordering differs in R and RS");
@@ -230,10 +245,15 @@ double MCatNLO_Process::LocalKFactor(const Cluster_Amplitude &ampl)
   if (b==0.0) return 0.0;
   bviproc->BBarMC()->GenerateEmissionPoint(ampl,rm);
   double bvi(bviproc->Differential(ampl,rm));
-  double s(bvi/b*(1.0-rs/r)), h(rs/r);
+  double s(0.), h(0.);
+  if      (m_kfacmode==0) { s=bvi/b*(1.0-rs/r); h=rs/r; }
+  else if (m_kfacmode==1) { s=bvi/b*(1.0-rs/r); h=0; }
+  else if (m_kfacmode==2) { s=0;                h=rs/r; }
+  else if (m_kfacmode==3) { s=bvi/b;            h=0.; }
+  else THROW(fatal_error,"Unknown Kfactor mode.");
   msg_Debugging()<<"BVI = "<<bvi<<", B = "<<b
 		 <<" -> S = "<<s<<", H = "<<h<<"\n";
-  double sw(1.0/(1.0+dabs(h/s)));
+  double sw(dabs(s)/(dabs(s)+dabs(h)));
   if (sw>ran->Get()) {
     msg_Debugging()<<"S selected ( w = "<<s/sw<<" )\n";
     for (Cluster_Amplitude *campl(ampl.Next());
@@ -284,6 +304,19 @@ double MCatNLO_Process::OneHEvent(const int wmode)
   else {
     p_ampl = dynamic_cast<Single_Process*>(rproc)->Cluster(p,4096);
   }
+  p_selected->Selected()->SetMEwgtinfo(*p_rsproc->Selected()->GetMEwgtinfo());
+  // rsproc has entry in m_RS, while rproc should have it in m_B
+  std::swap(p_selected->Selected()->GetMEwgtinfo()->m_B,
+            p_selected->Selected()->GetMEwgtinfo()->m_RS);
+  // append rda-info for scale variations, set type to H event
+  for (size_t i(0);i<p_rsproc->Selected()->GetSubevtList()->size();++i) {
+    NLO_subevt * sub((*p_rsproc->Selected()->GetSubevtList())[i]);
+    RDA_Info rda(sub->m_mewgt,sub->m_mu2[stp::ren],
+                 sub->m_mu2[stp::fac],sub->m_mu2[stp::fac],
+                 sub->m_i,sub->m_j,sub->m_k);
+    p_selected->Selected()->GetMEwgtinfo()->m_rdainfos.push_back(rda);
+  }
+  p_selected->Selected()->GetMEwgtinfo()->m_type=mewgttype::H;
   if (p_ampl==NULL) {
     msg_Error()<<METHOD<<"(): No valid clustering. Skip event."<<std::endl;
     return 0.0;
@@ -396,6 +429,7 @@ double MCatNLO_Process::OneSEvent(const int wmode)
     }
     msg_Debugging()<<"R selected via Sudakov "<<*p_ampl
 		   <<" ( w = "<<p_nlomc->Weight()<<" )\n";
+    p_selected->Selected()->SetMEwgtinfo(*p_bviproc->Selected()->GetMEwgtinfo());
     return p_nlomc->Weight();
   }
   p_selected=p_bproc;
@@ -406,6 +440,7 @@ double MCatNLO_Process::OneSEvent(const int wmode)
   bproc->Integrator()->SetMomenta(*p_ampl);
   msg_Debugging()<<"B selected "<<*p_ampl
 		 <<" ( w = "<<p_nlomc->Weight()<<" )\n";
+  p_selected->Selected()->SetMEwgtinfo(*p_bviproc->Selected()->GetMEwgtinfo());
   return stat?p_nlomc->Weight():0.0;
 }
 
@@ -419,11 +454,15 @@ Weight_Info *MCatNLO_Process::OneEvent(const int wmode,const int mode)
     p_selected=p_bviproc;
     winfo=p_bviproc->OneEvent(wmode,mode);
     if (winfo && m_fomode==0) {
-      winfo->m_weight*=OneSEvent(wmode);
-      winfo->m_weight*=p_bproc->Selected()
-	->Integrator()->SelectionWeight(wmode)/
-	p_bviproc->Selected()->Integrator()
-	->SelectionWeight(wmode);
+      double oneSEventWeight(OneSEvent(wmode));
+      double selectionWeightRatio(
+        p_bproc->Selected()->Integrator()->SelectionWeight(wmode)/
+        p_bviproc->Selected()->Integrator()->SelectionWeight(wmode)
+        );
+      winfo->m_weight*=oneSEventWeight;
+      winfo->m_weight*=selectionWeightRatio;
+      *(p_selected->Selected()->GetMEwgtinfo())*=oneSEventWeight;
+      *(p_selected->Selected()->GetMEwgtinfo())*=selectionWeightRatio;
       double lkf(p_bviproc->Selected()->Last()/
 		 p_bviproc->Selected()->LastB());
       for (Cluster_Amplitude *ampl(p_ampl);
@@ -443,11 +482,15 @@ Weight_Info *MCatNLO_Process::OneEvent(const int wmode,const int mode)
     p_selected=p_rsproc;
     winfo=p_rsproc->OneEvent(wmode,mode);
     if (winfo && m_fomode==0) {
-      winfo->m_weight*=OneHEvent(wmode);
-      winfo->m_weight*=p_rproc->Selected()
-	->Integrator()->SelectionWeight(wmode)/
-	p_rsproc->Selected()->Integrator()
-	->SelectionWeight(wmode);
+      double oneHEventWeight(OneHEvent(wmode));
+      double selectionWeightRatio(
+        p_rproc->Selected()->Integrator()->SelectionWeight(wmode)/
+        p_rsproc->Selected()->Integrator()->SelectionWeight(wmode)
+        );
+      winfo->m_weight*=oneHEventWeight;
+      winfo->m_weight*=selectionWeightRatio;
+      *(p_selected->Selected()->GetMEwgtinfo())*=oneHEventWeight;
+      *(p_selected->Selected()->GetMEwgtinfo())*=selectionWeightRatio;
     }
   }
   Mass_Selector *ms(Selected()->Generator());
@@ -465,8 +508,11 @@ Weight_Info *MCatNLO_Process::OneEvent(const int wmode,const int mode)
   if (rpa->gen.HardSC() || (rpa->gen.SoftSC() && !Flavour(kf_tau).IsStable())) {
     DEBUG_INFO("Calcing Differential for spin correlations using "
 	       <<Selected()->Generator()->Name()<<":");
-    while (Selected()->Differential(*p_ampl,1|2|4|128)==0.0);
-  }
+    if (Selected()->Integrator()->ColorIntegrator()!=NULL)
+      while (Selected()->Differential(*p_ampl,1|2|4|128)==0.0);
+    else
+      Selected()->Differential(*p_ampl,1|2|4|128);
+    }
   return winfo;
 }
 

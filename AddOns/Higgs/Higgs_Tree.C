@@ -5,6 +5,7 @@
 #include "ATOOLS/Org/Data_Reader.H"
 #include "ATOOLS/Org/Message.H"
 #include "ATOOLS/Org/Exception.H"
+#include "MODEL/UFO/UFO_Model.H"
 
 #include "Wrappers.H"
 #include "dilog.h"
@@ -77,7 +78,7 @@ double Higgs_Tree::Calc(const Vec4D_Vector &p)
   DEBUG_FUNC(this<<", m_mode = "<<m_mode);
   double muR=p_aqcd->Scale();
   if (muR>0.0) muR=sqrt(muR);
-  else muR=sqrt(rpa->gen.CplScale());
+  else muR=rpa->gen.Ecms();
   mu_sq=sqr(muR);
   alpha0=s_model->ScalarConstant("alpha_QED(0)");
   msg_Debugging()<<"\\mu_R = "<<muR<<" -> alpha = "
@@ -451,6 +452,7 @@ Tree_ME2_Base *ATOOLS::Getter<Tree_ME2_Base,Process_Info,Higgs_Tree>::
 operator()(const Process_Info &pi) const
 {
   DEBUG_FUNC(pi);
+  if (dynamic_cast<UFO::UFO_Model*>(MODEL::s_model)) return NULL;
   if (pi.m_loopgenerator!="Higgs") return NULL;
   if (pi.m_fi.m_nloewtype!=nlo_type::lo) return NULL;
   if (pi.m_fi.m_nloqcdtype==nlo_type::lo ||
