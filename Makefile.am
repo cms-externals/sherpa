@@ -12,15 +12,14 @@ SUBDIRS       = \
 		AMEGIC++ \
 		COMIX \
 		CSSHOWER++ \
+		DIRE \
 		AMISIC++ \
 		AHADIC++ \
 		HADRONS++ \
 		PHOTONS++ \
 		SHRiMPS \
 		SHERPA \
-		AddOns \
-		Manual \
-		Examples
+		AddOns
 
 EXTRA_DIST = GUIDELINES
 

@@ -5,18 +5,16 @@
 #include "SHERPA/PerturbativePhysics/Matrix_Element_Handler.H"
 #include "PDF/Remnant/Remnant_Base.H"
 
-namespace METOOLS {
-  class Amplitude2_Tensor;
-}
-
 namespace SHERPA {
+
+  class Scale_Variations;
 
   class Signal_Processes: public Event_Phase_Handler {
   private:
 
     Matrix_Element_Handler *p_mehandler;
+    Scale_Variations       *p_scalevars;
     PDF::Remnant_Base      *p_remnants[2];
-    METOOLS::Amplitude2_Tensor* p_atensor;
 
     double m_overweight;
     int m_setcolors, m_cmode;

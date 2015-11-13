@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("METOOLS/Colors","branches/rel-2-1-1","24084","b8c97fafe5e22cff6ddaa4b3378bdd77");
+("METOOLS/Colors","trunk/SHERPA","26134","f92f90d09babf524b6f160c0bbc0d7df");

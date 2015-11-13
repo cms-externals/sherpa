@@ -49,6 +49,7 @@ localinc_HEADERS         =	\
 			STL_Tools.H \
 			RUsage.H \
 			Getter_Function.H \
+			Getter_Function.C \
 			My_MPI.H \
 			Exception.H \
 			Exception_Handler.H \
@@ -76,7 +77,7 @@ localinc_HEADERS         =	\
 
 libToolsOrg_la_LIBADD = @CONDITIONAL_GZIPLIBS@ @SQLITE3_LDFLAGS@
 
-libToolsOrg_la_CPPFLAGS   =	$(AM_CPPFLAGS) @SQLITE3_CFLAGS@
+libToolsOrg_la_CPPFLAGS   =	$(AM_CPPFLAGS) @CONDITIONAL_GZIPINCS@ @SQLITE3_CFLAGS@
 
 EXTRA_DIST    = $(GZIPEXTRADIST) CXXFLAGS.H.in
 

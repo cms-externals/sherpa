@@ -24,21 +24,22 @@ namespace PDF {
 
   class CT10_Fortran_Interface : public PDF_Base {
   private:
-    std::string m_set;
     int         m_anti;
     double      m_f[11], m_x, m_Q;
     bool        m_calculated[11];
 
   public:
 
-    CT10_Fortran_Interface(const ATOOLS::Flavour bunch, std::string set, int member) :
-      m_set(set), m_anti(1)
+    CT10_Fortran_Interface(const ATOOLS::Flavour bunch,
+                           std::string set, int member) :
+      m_anti(1)
     {
       m_xmin=1.e-8;
       m_xmax=1.;
       m_q2min=1.69;
       m_q2max=1.e10;
 
+      m_set=set;
       m_type=m_set;
       m_bunch=bunch;
       m_member=member;
@@ -98,7 +99,7 @@ namespace PDF {
       if (iset==0) {
         THROW(fatal_error, "PDF set "+m_set+" ("+ToString(m_member)+") not found.");
       }
-  
+      m_asinfo.m_mz2=sqr(91.1876);
 
       char buffer[1024];
       char * err = getcwd(buffer,1024);
@@ -135,15 +136,15 @@ namespace PDF {
     }
 
 
-    void   CalculateSpec(double x, double Q2) {
+    void   CalculateSpec(const double& x, const double& Q2) {
       for (size_t i=0;i<11;++i) m_calculated[i]=false;
       m_x=x/m_rescale;
       m_Q=sqrt(Q2);
     }
 
 
-    double GetXPDF(const ATOOLS::Flavour infl) {
-      if ((m_x>m_xmax && m_rescale<1.) || m_rescale<0.) return 0.;
+    double GetXPDF(const ATOOLS::Flavour& infl) {
+      if (m_x>m_xmax || m_rescale<0.) return 0.;
       if (!(m_x>=0.0 && m_x<=1.0)) {
         PRINT_INFO("PDF called with x="<<m_x);
         return 0.;
@@ -162,6 +163,25 @@ namespace PDF {
       return m_rescale*m_f[5-cteqindex];     
     }
 
+    double GetXPDF(const kf_code& kf, bool anti) {
+      if (m_x>m_xmax) return 0.;
+      if (!(m_x>=0.0 && m_x<=1.0)) {
+        PRINT_INFO("PDF called with x="<<m_x);
+        return 0.;
+      }
+      int cteqindex;
+      switch (kf) {
+      case kf_gluon: cteqindex=0;                    break;
+      case kf_d:     cteqindex=m_anti*(anti?-2:2);   break;
+      case kf_u:     cteqindex=m_anti*(anti?-1:1);   break;
+      default:       cteqindex=m_anti*(anti?-kf:kf); break;
+      }
+      if (!m_calculated[5-cteqindex]) {
+        m_f[5-cteqindex]=ct10pdf_(cteqindex,m_x,m_Q)*m_x;
+        m_calculated[5-cteqindex]=true;
+      }
+      return m_rescale*m_f[5-cteqindex];
+    }
   };
 
 }
@@ -173,10 +193,7 @@ PDF_Base *CT10_Getter::operator()
   (const Parameter_Type &args) const
 {
   if (!args.m_bunch.IsHadron()) return NULL;
-  int member=args.p_read->GetValue<int>("PDF_SET_VERSION",0);
-  int ibeam=args.m_ibeam;
-  member=args.p_read->GetValue<int>("PDF_SET_VERSION_"+ToString(ibeam+1),member);
-  return new CT10_Fortran_Interface(args.m_bunch,m_key,member);
+  return new CT10_Fortran_Interface(args.m_bunch,args.m_set,args.m_member);
 }
 
 void CT10_Getter::PrintInfo

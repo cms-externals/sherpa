@@ -339,8 +339,7 @@ bool Event_Handler::GenerateHadronDecayEvent(eventtype::code & mode) {
   if (!read.ReadFromFile(mother_kf,"DECAYER")) {
     THROW(fatal_error,"Didn't find DECAYER=<PDG_CODE> in parameters.");
   }
-  Flavour mother_flav;
-  mother_flav.FromHepEvt(mother_kf);
+  Flavour mother_flav(mother_kf);
   mother_flav.SetStable(false);
   rpa->gen.SetEcms(mother_flav.HadMass());
 
@@ -362,8 +361,8 @@ bool Event_Handler::GenerateHadronDecayEvent(eventtype::code & mode) {
     case 3:
       return false;
     case 2:
-      InitialiseSeedBlob(ATOOLS::btp::Soft_Collision,
-                         ATOOLS::blob_status::needs_minBias);
+      InitialiseSeedBlob(ATOOLS::btp::Hadron_Decay,
+                         ATOOLS::blob_status::needs_hadrondecays);
       mother_in_part=new Particle(1, mother_flav, mom);
       mother_part=new Particle(1, mother_flav, mom);
       mother_part->SetTime();
@@ -433,50 +432,15 @@ void Event_Handler::MPISync()
 #ifdef USING__MPI
   int size=MPI::COMM_WORLD.Get_size();
   if (size>1) {
-    int rank=mpi->HasMPISend()?mpi->MPISend().Get_rank():0;
-    int cn=4;
-    double *values = new double[cn];
-    if (mpi->HasMPIRecv()) {
-      for (int tag=1;tag<mpi->MPIRecv().Get_size();++tag) {
-	mpi->MPIRecv().Recv(values,cn,MPI::DOUBLE,MPI::ANY_SOURCE,tag);
-        m_mn+=values[0];
-        m_msum+=values[1];
-        m_msumsqr+=values[2];
-        if (values[3]>m_maxweight) m_maxweight=values[3];
-      }
-      if (rank) {
-	values[0]=m_mn;
-	values[1]=m_msum;
-	values[2]=m_msumsqr;
-	values[3]=m_maxweight;
-	mpi->MPISend().Send(values,cn,MPI::DOUBLE,0,rank);
-	mpi->MPISend().Recv(values,cn,MPI::DOUBLE,0,size+rank);
-	m_mn=values[0];
-	m_msum=values[1];
-	m_msumsqr=values[2];
-	m_maxweight=values[3];
-      }
-      values[0]=m_mn;
-      values[1]=m_msum;
-      values[2]=m_msumsqr;
-      values[3]=m_maxweight;
-      for (int tag=1;tag<mpi->MPIRecv().Get_size();++tag) {
-	mpi->MPIRecv().Send(values,cn,MPI::DOUBLE,tag,size+tag);
-      }
-    }
-    else {
-      values[0]=m_mn;
-      values[1]=m_msum;
-      values[2]=m_msumsqr;
-      values[3]=m_maxweight;
-      mpi->MPISend().Send(values,cn,MPI::DOUBLE,0,rank);
-      mpi->MPISend().Recv(values,cn,MPI::DOUBLE,0,size+rank);
-      m_mn=values[0];
-      m_msum=values[1];
-      m_msumsqr=values[2];
-      m_maxweight=values[3];
-    }
-    delete [] values;
+    double values[3];
+    values[0]=m_mn;
+    values[1]=m_msum;
+    values[2]=m_msumsqr;
+    mpi->MPIComm()->Allreduce(MPI_IN_PLACE,values,3,MPI::DOUBLE,MPI::SUM);
+    mpi->MPIComm()->Allreduce(MPI_IN_PLACE,&m_maxweight,1,MPI::DOUBLE,MPI::MAX);
+    m_mn=values[0];
+    m_msum=values[1];
+    m_msumsqr=values[2];
   }
 #endif
   size_t currentrss=GetCurrentRSS();
