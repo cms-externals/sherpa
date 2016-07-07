@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("PDF/LHAPDF","trunk/SHERPA","26134","X");
+("PDF/LHAPDF","branches/rel-2-2-1","28647","X");

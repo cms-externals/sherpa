@@ -18,7 +18,8 @@ namespace PHASIC {
 		       const Subprocess_Info &fi,int mode=0) const;
     void SetFlavour(Subprocess_Info &cii,Subprocess_Info &cfi,
 		    const ATOOLS::Flavour &fl,const size_t i) const;
-    bool ConstructProcesses(Process_Info pi,const size_t &ci);
+    bool ConstructProcesses(Process_Info &pi,const size_t &ci);
+    bool ConstructProcess(Process_Info &pi);
 
   public:
 
@@ -59,6 +60,7 @@ namespace PHASIC {
 
     void SetGenerator(ME_Generator_Base *const gen);
     void SetShower(PDF::Shower_Base *const ps);
+    void SetVariationWeights(SHERPA::Variation_Weights *const);
     void SetSelector(const Selector_Key &key);
     bool Trigger(const ATOOLS::Vec4D_Vector &p);
 

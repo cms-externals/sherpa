@@ -74,8 +74,9 @@ namespace SHERPA {
 
     ATOOLS::Weight_Info m_evtinfo;
 
-    Shower_Handler   *p_shower;
-    PDF::NLOMC_Base  *p_nlomc;
+    Shower_Handler    *p_shower;
+    Variation_Weights *p_variationweights;
+    PDF::NLOMC_Base   *p_nlomc;
 
     double m_sum, m_ovwth, m_weightfactor;
     size_t m_globalnlomode, m_ranidx, m_fosettings;
@@ -117,6 +118,8 @@ namespace SHERPA {
 
     std::vector<PHASIC::Process_Base*> InitializeProcess
     (const PHASIC::Process_Info &pi,PHASIC::NLOTypeStringProcessMap_Map *&pmap);
+    std::vector<PHASIC::Process_Base*> InitializeSingleProcess
+    (const PHASIC::Process_Info &pi,PHASIC::NLOTypeStringProcessMap_Map *&pmap);
 
     void BuildProcesses();
 
@@ -152,7 +155,8 @@ namespace SHERPA {
     inline BEAM::Beam_Spectra_Handler *GetBeam() const { return p_beam; }
     inline PDF::ISR_Handler           *GetISR() const  { return p_isr;  }
 
-    inline void SetShowerHandler(Shower_Handler *const sh) { p_shower=sh; }
+    inline void SetShowerHandler(Shower_Handler *const sh)       { p_shower=sh;           }
+    inline void SetVariationWeights(Variation_Weights *const vw) { p_variationweights=vw; }
 
     inline Shower_Handler *Shower() const { return p_shower; }
 

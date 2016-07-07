@@ -22,6 +22,7 @@
 #include "METOOLS/Main/Spin_Structure.H"
 #include "ATOOLS/Org/Run_Parameter.H"
 #include "SHERPA/SoftPhysics/Soft_Photon_Handler.H"
+#include "SHERPA/Tools/Variations.H"
 
 #include "EXTRA_XS/One2Two/Comix1to2.H"
 #include "EXTRA_XS/One2Three/Comix1to3.H"
@@ -220,7 +221,7 @@ void Hard_Decay_Handler::InitializeDirectDecays(Decay_Table* dt)
   DEBUG_FUNC(dt->Flav());
   Flavour inflav=dt->Flav();
   Vertex_Table::const_iterator vlit=s_model->VertexTable()->find(inflav);
-  const Vertex_List& vlist(vlit->second);
+  const Vertex_List& vlist=(vlit!=s_model->VertexTable()->end()) ? (vlit->second) : Vertex_List();
   // temporary hack:
   // prepare reduced vertex list, not containing duplicates
   // in the sense of having identical external flavours
@@ -580,6 +581,10 @@ void Hard_Decay_Handler::TreatInitialBlob(ATOOLS::Blob* blob,
   }
   Blob_Data_Base * wgtinfo((*blob)["MEWeightInfo"]);
   if (wgtinfo) *wgtinfo->Get<ME_Weight_Info*>()*=brfactor;
+
+  Blob_Data_Base * varweights((*blob)["Variation_Weights"]);
+  if (varweights) varweights->Get<Variation_Weights>()*=brfactor;
+
   NLO_subevtlist* sublist(NULL);
   Blob_Data_Base * bdb((*blob)["NLO_subeventlist"]);
   if (bdb) sublist=bdb->Get<NLO_subevtlist*>();

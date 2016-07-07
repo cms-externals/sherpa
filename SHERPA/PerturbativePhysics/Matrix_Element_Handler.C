@@ -9,6 +9,7 @@
 #include "ATOOLS/Org/MyStrStream.H"
 #include "ATOOLS/Org/Shell_Tools.H"
 #include "SHERPA/PerturbativePhysics/Shower_Handler.H"
+#include "SHERPA/Tools/Variations.H"
 #include "ATOOLS/Org/CXXFLAGS.H"
 #include "PDF/Main/Shower_Base.H"
 #include "PDF/Main/NLOMC_Base.H"
@@ -17,6 +18,7 @@
 #include "PHASIC++/Process/ME_Generator_Base.H"
 #include "PHASIC++/Main/Process_Integrator.H"
 #include "PHASIC++/Main/Phase_Space_Handler.H"
+#include "ATOOLS/Org/My_MPI.H"
 #include "ATOOLS/Org/RUsage.H"
 #ifdef USING__GZIP
 #include "ATOOLS/Org/Gzip_Stream.H"
@@ -36,7 +38,8 @@ Matrix_Element_Handler::Matrix_Element_Handler
   p_proc(NULL), p_beam(NULL), p_isr(NULL), p_model(NULL),
   m_path(dir), m_file(file), m_processfile(processfile),
   m_selectorfile(selectorfile), m_eventmode(0), m_hasnlo(0),
-  p_shower(NULL), p_nlomc(NULL), m_sum(0.0), m_globalnlomode(0),
+  p_shower(NULL), p_nlomc(NULL), p_variationweights(NULL),
+  m_sum(0.0), m_globalnlomode(0),
   m_ranidx(0), m_fosettings(0), p_ranin(NULL), p_ranout(NULL)
 {
   Data_Reader read(" ",";","!","=");
@@ -185,7 +188,10 @@ bool Matrix_Element_Handler::GenerateOneEvent()
       }
     }
     if (proc==NULL) THROW(fatal_error,"No process selected");
+    p_variationweights->Reset();
+    proc->SetVariationWeights(p_variationweights);
     ATOOLS::Weight_Info *info=proc->OneEvent(m_eventmode);
+    proc->SetVariationWeights(NULL);
     p_proc=proc->Selected();
     if (p_proc->Generator()==NULL)
       THROW(fatal_error,"No generator for process '"+p_proc->Name()+"'");
@@ -214,6 +220,7 @@ bool Matrix_Element_Handler::GenerateOneEvent()
       p_proc->GetSubevtList()->MultMEwgt(wf);
     }
     if (p_proc->GetMEwgtinfo()) (*p_proc->GetMEwgtinfo())*=wf;
+    (*p_variationweights)*=wf;
     m_evtinfo.m_ntrial=n;
     return true;
   }
@@ -221,6 +228,34 @@ bool Matrix_Element_Handler::GenerateOneEvent()
 }
 
 std::vector<Process_Base*> Matrix_Element_Handler::InitializeProcess
+(const Process_Info &pi,NLOTypeStringProcessMap_Map *&pmap)
+{
+  Process_Info cpi(pi);
+  std::set<Process_Info> trials;
+  std::vector<Process_Base*> procs;
+  std::vector<Flavour_Vector> fls(pi.ExtractMPL());
+  std::vector<int> fid(fls.size(),0);
+  Flavour_Vector fl(fls.size());
+  for (size_t i(0);i<fid.size();++i) fl[i]=fls[i][0];
+  for (size_t hc(fid.size()-1);fid[0]<fls[0].size();) {
+    if(fid[hc]==fls[hc].size()){fid[hc--]=0;++fid[hc];continue;}
+    fl[hc]=fls[hc][fid[hc]];if(hc<fid.size()-1){++hc;continue;}
+    Flavour_Vector cfl(fl);
+    size_t n(0);
+    cpi.m_ii.SetExternal(cfl,n);
+    cpi.m_fi.SetExternal(cfl,n);
+    Process_Base::SortFlavours(cpi,0);
+    if (trials.find(cpi)==trials.end()) {
+      trials.insert(cpi);
+      std::vector<Process_Base*> cp=InitializeSingleProcess(cpi,pmap);
+      procs.insert(procs.end(),cp.begin(),cp.end());
+    }
+    ++fid[hc];
+  }
+  return procs;
+}
+
+std::vector<Process_Base*> Matrix_Element_Handler::InitializeSingleProcess
 (const Process_Info &pi,NLOTypeStringProcessMap_Map *&pmap)
 {
   std::vector<Process_Base*> procs;
@@ -336,7 +371,13 @@ int Matrix_Element_Handler::InitializeProcesses
   if (!m_gens.InitializeGenerators(model,beam,isr)) return false;
   double rbtime(ATOOLS::rpa->gen.Timer().RealTime());
   double btime(ATOOLS::rpa->gen.Timer().UserTime());
+#ifdef USING__MPI
+  if (MPI::COMM_WORLD.Get_rank()==0)
+#endif
+  MakeDir(rpa->gen.Variable("SHERPA_CPP_PATH")+"/Process",true);
+  My_In_File::OpenDB(rpa->gen.Variable("SHERPA_CPP_PATH")+"/Process/Sherpa/");
   BuildProcesses();
+  My_In_File::CloseDB(rpa->gen.Variable("SHERPA_CPP_PATH")+"/Process/Sherpa/");
   if (msg_LevelIsTracking()) msg_Info()<<"Process initialization";
   double retime(ATOOLS::rpa->gen.Timer().RealTime());
   double etime(ATOOLS::rpa->gen.Timer().UserTime());
@@ -856,11 +897,17 @@ size_t Matrix_Element_Handler::ExtractFlavours(Subprocess_Info &info,std::string
     std::string cur(buffer.substr(0,pos));
     buffer=buffer.substr(pos);
     pos=cur.find('(');
-    std::string polid;
+    std::string polid, mpl, rem;
     if (pos!=std::string::npos) {
       polid=cur.substr(pos);
+      rem=polid.substr(polid.find(')')+1);
       cur=cur.substr(0,pos);
       polid=polid.substr(1,polid.find(')')-1);
+    }
+    if (cur.length()==0 && polid.length()) {
+      cur="0"+rem;
+      mpl=polid;
+      polid="";
     }
     pos=cur.find('[');
     std::string decid;
@@ -881,7 +928,7 @@ size_t Matrix_Element_Handler::ExtractFlavours(Subprocess_Info &info,std::string
     if (kfc<0) cfl=cfl.Bar();
     if (n==-1) {
       for (size_t i(0);i<info.m_ps.size();++i)
-	info.m_ps[i].m_ps.push_back(Subprocess_Info(cfl,decid,polid));
+	info.m_ps[i].m_ps.push_back(Subprocess_Info(cfl,decid,polid,mpl));
     }
     else {
       size_t oldsize(info.m_ps.size());
@@ -889,7 +936,7 @@ size_t Matrix_Element_Handler::ExtractFlavours(Subprocess_Info &info,std::string
       for (int j(1);j<=n;++j) {
 	for (size_t i(0);i<oldsize;++i) {
 	  info.m_ps[j*oldsize+i]=info.m_ps[(j-1)*oldsize+i];
-	  info.m_ps[j*oldsize+i].m_ps.push_back(Subprocess_Info(cfl,"",polid));
+	  info.m_ps[j*oldsize+i].m_ps.push_back(Subprocess_Info(cfl,"",polid,mpl));
 	}
       }
     }

@@ -11,6 +11,7 @@
 #include "SHERPA/SoftPhysics/Soft_Photon_Handler.H"
 #include "SHERPA/LundTools/Lund_Interface.H"
 #include "SHERPA/Tools/Event_Reader_Base.H"
+#include "SHERPA/Tools/Variations.H"
 #include "PHASIC++/Scales/Core_Scale_Setter.H"
 #include "MODEL/Main/Model_Base.H"
 #include "MODEL/Main/Running_AlphaS.H"
@@ -56,9 +57,10 @@ Initialization_Handler::Initialization_Handler(int argc,char * argv[]) :
   m_savestatus(false), p_model(NULL), p_beamspectra(NULL), 
   p_mehandler(NULL), p_harddecays(NULL), p_beamremnants(NULL),
   p_fragmentation(NULL), p_softcollisions(NULL), p_hdhandler(NULL), 
-  p_mihandler(NULL), p_softphotons(NULL), p_evtreader(NULL)
+  p_mihandler(NULL), p_softphotons(NULL), p_evtreader(NULL),
+  p_variations(NULL)
 {
-  m_path=std::string("./");
+  m_path=std::string("");
   m_file=std::string("Run.dat");
 
   ExtractCommandLineParameters(argc, argv);
@@ -144,6 +146,7 @@ Initialization_Handler::~Initialization_Handler()
   if (p_beamspectra)   { delete p_beamspectra;   p_beamspectra   = NULL; }
   if (p_model)         { delete p_model;         p_model         = NULL; }
   if (p_dataread)      { delete p_dataread;      p_dataread      = NULL; }
+  if (p_variations)    { delete p_variations;    p_variations    = NULL; }
   while (m_analyses.size()>0) {
     delete m_analyses.back();
     m_analyses.pop_back();
@@ -169,8 +172,6 @@ Initialization_Handler::~Initialization_Handler()
     if (exit==NULL) THROW(fatal_error,"Cannot unload PDF library "+*pdflib);
     ((PDF_Exit_Function)exit)();
   }
-  String_Vector dummy;
-  Read_Write_Base::SetCommandLine(dummy);
 }
 
 void Initialization_Handler::CheckVersion()
@@ -415,6 +416,7 @@ bool Initialization_Handler::InitializeTheFramework(int nr)
     okay = okay && InitializeTheUnderlyingEvents();
     okay = okay && InitializeTheSoftPhotons();
     okay = okay && InitializeTheIO();
+    okay = okay && InitializeTheReweighting();
   }
   return okay;
 }
@@ -851,6 +853,19 @@ bool Initialization_Handler::InitializeTheAnalyses()
   return true;
 }
 
+bool Initialization_Handler::InitializeTheReweighting()
+{
+  if (p_variations) {
+    delete p_variations;
+  }
+  Data_Reader dataread(" ",";","!","=");
+  dataread.AddComment("#");
+  dataread.AddWordSeparator("\t");
+  dataread.SetInputPath(m_path);
+  p_variations = new Variations(&dataread);
+  return true;
+}
+
 bool Initialization_Handler::CalculateTheHardProcesses()
 {
   if (m_mode!=eventtype::StandardPerturbative) return true;
@@ -1045,25 +1060,14 @@ void Initialization_Handler::ExtractCommandLineParameters(int argc,char * argv[]
   m_path="";
 
   std::vector<std::string> helpsv2;
-  // Add parameters from possible global.dat to command line
   Data_Reader dr(" ",";","!","=");
   dr.AddWordSeparator("\t");
   dr.AddComment("#");
-  dr.SetInputPath(rpa->gen.Variable("HOME")+"/.sherpa/");
-  dr.SetInputFile("global.dat");
-  std::vector<std::vector<std::string> > helpsvv;
-  if (dr.MatrixFromFile(helpsvv,"")) {
-    helpsv2.resize(helpsvv.size());
-    for (size_t i(0);i<helpsvv.size();++i) {
-      helpsv2[i]=helpsvv[i][0];
-      for (size_t j(1);j<helpsvv[i].size();++j) helpsv2[i]+=" "+helpsvv[i][j];
-    }
-  }
   // Add parameters from Run.dat to command line
   // (this makes it possible to overwrite particle properties in Run.dat)
   dr.SetInputPath(m_path);
   dr.SetInputFile(m_file);
-  dr.RereadInFile();
+  std::vector<std::vector<std::string> > helpsvv;
   if (dr.MatrixFromFile(helpsvv,"")) {
     size_t oldsize(helpsv2.size());
     helpsv2.resize(oldsize+helpsvv.size());

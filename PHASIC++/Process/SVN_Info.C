@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("PHASIC++/Process","trunk/SHERPA","26134","b2db90b072c2179e39f1d3521f18dff7");
+("PHASIC++/Process","branches/rel-2-2-1","28647","763ac8246cdc7c86ef651892109f8cdc");

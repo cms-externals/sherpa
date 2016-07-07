@@ -8,24 +8,20 @@ using namespace MODEL;
 using namespace ATOOLS;
 
 Point::Point(const Point& copy) { 
-  extrafl = 0;
-  Color   = new Color_Function;
+  Color   = NULL;
   Lorentz = NULL;
   middle  = 0;
-  nextra = 0;
 
   *this = copy;
 } 
 
-Point::Point(int extra) : nextra(extra)  { 
+Point::Point(int extra) { 
   zwf     = 0;
   propid  = 0;
-  extrafl = 0;
   v       = 0;
-  Color   = new Color_Function;
+  Color   = NULL;
   Lorentz = NULL;
   middle  = 0;
-  if (nextra>0) extrafl = new ATOOLS::Flavour[nextra]; 
 }
 
 Point& Point::operator=(const Point& p) {
@@ -37,18 +33,14 @@ Point& Point::operator=(const Point& p) {
     propid = p.propid;
     m      = p.m;
     fl     = p.fl;
-      
-    *Color = *p.Color; 
-    if (Lorentz) delete Lorentz;
-    Lorentz=NULL;
-    if (p.Lorentz) Lorentz = p.Lorentz->GetCopy(); 
- 
-    if (nextra>0) delete[] extrafl;
-    nextra = p.nextra;
-    if (nextra>0) {
-      extrafl = new ATOOLS::Flavour[nextra]; 
-      for(int i=0;i<nextra;i++) extrafl[i] = p.extrafl[i];
+
+    if (p.Lorentz) {
+      if (Color==NULL) Color = new Color_Function();
+      *Color = *p.Color; 
+      if (Lorentz) Lorentz->Delete();
+      Lorentz = p.Lorentz->GetCopy(); 
     }
+
     left   = p.left;
     right  = p.right;
     middle = p.middle;

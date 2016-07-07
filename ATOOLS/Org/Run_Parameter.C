@@ -199,12 +199,10 @@ void Run_Parameter::Init(std::string path,std::string file,int argc,char* argv[]
 	     <<". Initialization of framework underway."<<std::endl;
   msg_Info()<<"The local time is "<<rpa->gen.Timer().TimeString(0)<<"."<<std::endl;
   // make path nice
-  if (path.length()>0) {
-    if (path[0]!='/') path=gen.m_variables["SHERPA_RUN_PATH"]+"/"+path;
-    while (path.length()>0 && 
-	   (path[path.length()-1]=='/' || path[path.length()-1]=='.')) 
-      path=path.substr(0,path.length()-1);
-  }
+  if (path[0]!='/') path=gen.m_variables["SHERPA_RUN_PATH"]+"/"+path;
+  while (path.length()>0 && 
+	 (path[path.length()-1]=='/' || path[path.length()-1]=='.')) 
+    path=path.substr(0,path.length()-1);
 
   // set cpp path
   std::string cpppath=dr.GetValue<std::string>("SHERPA_CPP_PATH",std::string(""));
@@ -235,7 +233,7 @@ void Run_Parameter::Init(std::string path,std::string file,int argc,char* argv[]
   setenv(LD_PATH_NAME,(gen.m_variables[LD_PATH_NAME]+std::string(":")+
 			    gen.m_variables["SHERPA_LIB_PATH"]).c_str(),1);
 #endif
-  MakeDir(gen.m_variables["HOME"]+"/.sherpa/",true);
+  gen.m_variables["EVENT_GENERATION_MODE"]="-1";
   gen.m_analysis           = dr.GetValue<int>("ANALYSIS",0);
   dr.SetAllowUnits(true);
   gen.m_nevents            = dr.GetValue<long int>("EVENTS",100);
@@ -288,6 +286,11 @@ void Run_Parameter::Init(std::string path,std::string file,int argc,char* argv[]
     for (int i(1);i<4;++i) seedstr+="_"+ToString(gen.m_seeds[i]);
   gen.SetVariable("RNG_SEED",ToString(gen.m_seeds[0])+seedstr);
 
+  gen.SetVariable("PB_USE_FMM",ToString(dr.GetValue<int>("PB_USE_FMM",0)));
+  gen.SetVariable("HISTOGRAM_OUTPUT_PRECISION",ToString
+		  (dr.GetValue<int>("HISTOGRAM_OUTPUT_PRECISION",6)));
+  gen.SetVariable("SELECTION_WEIGHT_MODE",ToString
+		  (dr.GetValue<int>("SELECTION_WEIGHT_MODE",0)));
   dr.SetAllowUnits(true);
   gen.SetVariable("MEMLEAK_WARNING_THRESHOLD",
 		  ToString(dr.GetValue<int>("MEMLEAK_WARNING_THRESHOLD",1<<24)));

@@ -27,17 +27,17 @@
 * BUNCH_2
 * CABIBBO
 * CHECK_BORN
-                                                             (line 4859)
+                                                             (line 4893)
 * CHECK_FINITE
-                                                             (line 4859)
+                                                             (line 4893)
 * CHECK_POLES
-                                                             (line 4859)
+                                                             (line 4893)
 * CHECK_POLES_THRESHOLD
-                                                             (line 4859)
+                                                             (line 4893)
 * Chi_S
 * CKMORDER
 * CORE_SCALE
-                                                             (line 2595)
+                                                             (line 2605)
 * COUPLINGS
 * COUPLING_SCHEME
 * CSS_EVOLUTION_SCHEME
@@ -57,10 +57,10 @@
 * DECAYPATH
 * DECAY_OFFSET
 * DECAY_RESULT_DIRECTORY
-                                                             (line 3660)
+                                                             (line 3697)
 * DECAY_TAU_HARD
 * Delphes
-                                                             (line 1640)
+                                                             (line 1639)
 * Delta
 * deltaY
 * DIPOLE_ALPHA
@@ -78,48 +78,48 @@
 * EVENTS
 * EVENT_DISPLAY_INTERVAL
 * EVENT_GENERATION_MODE
-                                                             (line 2312)
+                                                             (line 2322)
 * EVENT_INPUT
-                                                             (line 1640)
+                                                             (line 1639)
 * EVENT_OUTPUT
-                                                             (line 1640)
+                                                             (line 1639)
 * EVENT_TYPE
 * EVENT_TYPE <1>
 * EVT_FILE_PATH
-                                                             (line 1640)
+                                                             (line 1639)
 * EVT_OUTPUT
 * EW_SCHEME
 * E_LASER_
 * E_LASER_ <1>
 * FILE_SIZE
-                                                             (line 1640)
+                                                             (line 1639)
 * FINISH_OPTIMIZATION
-                                                             (line 3513)
+                                                             (line 3539)
 * FINITE_TOP_MASS
 * FINITE_W_MASS
 * FRAGMENTATION
 * HARD_DECAYS
 * HARD_MASS_SMEARING
 * HARD_SPIN_CORRELATIONS
-                                                             (line 3639)
+                                                             (line 3676)
 * HARD_SPIN_CORRELATIONS <1>
 * HDH_BR_WEIGHTS
 * HDH_INT_ACCURACY
-                                                             (line 3730)
+                                                             (line 3767)
 * HDH_INT_NITER
-                                                             (line 3730)
+                                                             (line 3767)
 * HDH_INT_TARGET_MODE
-                                                             (line 3730)
+                                                             (line 3767)
 * HDH_SET_WIDTHS
 * HDH_STATUS[<idcode>]
 * HDH_WIDTH[<idcode>]
 * HEAVY_BARYON_ENHANCEMEMT
 * HEPEVT
-                                                             (line 1640)
+                                                             (line 1639)
 * HepMC_GenEvent
-                                                             (line 1640)
+                                                             (line 1639)
 * HepMC_Short
-                                                             (line 1640)
+                                                             (line 1639)
 * HIGGS_INTERFERENCE_MODE
 * HIGGS_INTERFERENCE_ONLY
 * HIGGS_INTERFERENCE_SPIN
@@ -147,21 +147,21 @@
 * LASER_MODE
 * LASER_NONLINEARITY
 * LHEF
-                                                             (line 1640)
+                                                             (line 1639)
 * LHOLE_BOOST_TO_CMS
-                                                             (line 5196)
+                                                             (line 5227)
 * LHOLE_CONTRACTFILE
-                                                             (line 5196)
+                                                             (line 5227)
 * LHOLE_IR_REGULARISATION
-                                                             (line 5196)
+                                                             (line 5227)
 * LHOLE_OLP
-                                                             (line 5196)
+                                                             (line 5227)
 * LHOLE_ORDERFILE
-                                                             (line 5196)
+                                                             (line 5227)
 * LOG_FILE
 * Loop_Generator
 * LOOP_ME_INIT
-                                                             (line 4849)
+                                                             (line 4883)
 * MassExponent_C->HH
 * MASSIVE[<id>]
 * MASS[<id>]
@@ -171,19 +171,19 @@
 * ME_QED
 * ME_QED_CLUSTERING
 * ME_QED_CLUSTERING_THRESHOLD
-                                                             (line 4420)
+                                                             (line 4454)
 * ME_SIGNAL_GENERATOR
-                                                             (line 2276)
+                                                             (line 2286)
 * Mixing_0+
 * Mixing_1-
 * MI_HANDLER
 * MI_RESULT_DIRECTORY
-                                                             (line 3913)
+                                                             (line 3948)
 * MI_RESULT_DIRECTORY_SUFFIX
-                                                             (line 3922)
+                                                             (line 3957)
 * MODEL
 * MOMENTA_DATA_FILE
-                                                             (line 7532)
+                                                             (line 7564)
 * MSTJ
 * MSTP
 * MSTU
@@ -213,16 +213,16 @@
 * M_STRANGE
 * M_UP_DOWN
 * NUMBER_OF_POINTS
-                                                             (line 7532)
+                                                             (line 7564)
 * NUM_ACCURACY
 * ORDER_ALPHAS
 * OUTPUT
 * OUTPUT_PRECISION
-                                                             (line 1640)
+                                                             (line 1639)
 * PARJ
 * PARP
 * PARTICLE_CONTAINER
-                                                             (line 2767)
+                                                             (line 2776)
 * PARU
 * PATH
 * PDF_LIBRARY
@@ -235,7 +235,9 @@
 * PROFILE_FUNCTION
 * PROFILE_PARAMETERS
 * PSI_ITMAX
+* PSI_ITMAX_BY_NODE
 * PSI_ITMIN
+* PSI_ITMIN_BY_NODE
 * PSI_NMAX
 * PT^2_0
 * PT_MAX
@@ -261,7 +263,7 @@
 * RLIMIT_AS
 * RLIMIT_BY_CPU
 * Root
-                                                             (line 1640)
+                                                             (line 1639)
 * RUNDATA
 * SCALES
 * SCALE_MIN
@@ -285,7 +287,7 @@
 * STABLE[<id>] <1>
 * STABLE[<id>] <2>
 * STORE_DECAY_RESULTS
-                                                             (line 3647)
+                                                             (line 3684)
 * STRANGE_FRACTION
 * TIMEOUT
 * TRANSITION_OFFSET
@@ -293,10 +295,10 @@
 * TURNOFF
 * TURNOFF_EXPONENT
 * UFO_PARAM_CARD
-                                                             (line 2225)
+                                                             (line 2222)
 * USE_PDF_ALPHAS
 * USR_WGT_MODE
-                                                             (line 4895)
+                                                             (line 4927)
 * VEGAS
 * VEV
 * WIDTH[<id>]

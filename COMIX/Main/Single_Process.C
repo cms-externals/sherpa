@@ -30,19 +30,6 @@ COMIX::Single_Process::Single_Process():
   p_loop(NULL), p_kpterms(NULL),
   m_checkpoles(false), m_allowmap(true)
 {
-  int helpi;
-  Data_Reader reader(" ",";","!","=");
-  reader.AddComment("#");
-  reader.SetInputPath(rpa->GetPath());
-  reader.SetInputFile(rpa->gen.Variable("ME_DATA_FILE"));
-  if (reader.ReadFromFile(helpi,"COMIX_ALLOW_MAPPING")) {
-    m_allowmap=helpi;
-    msg_Tracking()<<"Set mapping mode "<<m_allowmap<<".\n";
-  }
-  if (reader.ReadFromFile(helpi,"CHECK_POLES")) {
-    m_checkpoles=helpi;
-    msg_Tracking()<<"Set pole check mode "<<m_checkpoles<<".\n";
-  }
 }
 
 COMIX::Single_Process::~Single_Process()
@@ -83,7 +70,7 @@ bool COMIX::Single_Process::Initialize
   }
   std::string mapfile(rpa->gen.Variable("SHERPA_CPP_PATH")
 		      +"/Process/Comix/"+m_name+".map");
-  if (FileExists(mapfile)) {
+  if (FileExists(mapfile,1)) {
     msg_Tracking()<<METHOD<<"(): Map file '"<<mapfile<<"' found.\n";
     My_In_File mapstream(mapfile);
     if (mapstream.Open()) {
@@ -167,6 +154,15 @@ bool COMIX::Single_Process::Initialize
       p_loop->SetCouplings(m_cpls);
       p_loop->SetNorm(1.0/(isf*fsf));
       m_mewgtinfo.m_type|=mewgttype::VI;
+      int helpi;
+      Data_Reader reader(" ",";","!","=");
+      reader.AddComment("#");
+      reader.SetInputPath(rpa->GetPath());
+      reader.SetInputFile(rpa->gen.Variable("ME_DATA_FILE"));
+      if (reader.ReadFromFile(helpi,"CHECK_POLES")) {
+	m_checkpoles=helpi;
+	msg_Tracking()<<"Set pole check mode "<<m_checkpoles<<".\n";
+      }
     }
     p_bg->SetLoopME(p_loop);
     nlo_type::code nlot(nlo_type::loop|nlo_type::vsub);
@@ -285,7 +281,7 @@ bool COMIX::Single_Process::MapProcess()
   }
   std::string ampfile(rpa->gen.Variable("SHERPA_CPP_PATH")
 		      +"/Process/Comix/"+m_name+".map");
-  if (!FileExists(ampfile) && m_allowmap) {
+  if (!FileExists(ampfile,1) && m_allowmap) {
   for (size_t i(0);i<p_umprocs->size();++i) {
     msg_Debugging()<<METHOD<<"(): Try mapping '"
 		   <<Name()<<"' -> '"<<(*p_umprocs)[i]->Name()<<"'\n";
@@ -308,7 +304,7 @@ bool COMIX::Single_Process::MapProcess()
 #endif
       std::string mapfile(rpa->gen.Variable("SHERPA_CPP_PATH")
 			  +"/Process/Comix/"+m_name+".map");
-      if (!FileExists(mapfile)) {
+      if (!FileExists(mapfile,1)) {
 	My_Out_File map(mapfile);
 	if (map.Open()) {
 	  *map<<m_name<<" "<<mapname<<"\n"<<m_fmap.size()<<"\n";
@@ -377,8 +373,10 @@ double COMIX::Single_Process::Partonic
 (const Vec4D_Vector &p,const int mode) 
 {
   Single_Process *sp(p_map!=NULL?p_map:this);
-  if (mode==1)
-    return m_lastxs=m_dxs+m_w*GetKPTerms(m_flavs,mode);
+  if (mode==1) {
+    UpdateKPTerms(mode);
+    return m_lastxs=m_dxs+KPTerms(mode);
+  }
   if (m_zero || !Selector()->Result()) return m_lastxs;
   for (size_t i(0);i<m_nin+m_nout;++i) {
     m_p[i]=p[i];
@@ -420,7 +418,8 @@ double COMIX::Single_Process::Partonic
       }
     }
   }
-  double kpterms(m_w*GetKPTerms(m_flavs,mode));
+  UpdateKPTerms(mode);
+  double kpterms(KPTerms(mode));
   if (m_mewgtinfo.m_wren.size() || m_mewgtinfo.m_wfac.size()) {
     FillMEWeights(m_mewgtinfo);
     m_mewgtinfo*=m_w;
@@ -429,11 +428,10 @@ double COMIX::Single_Process::Partonic
   return m_lastxs=m_dxs+kpterms;
 }
 
-double COMIX::Single_Process::GetKPTerms
-(const Flavour_Vector &fl,const int mode)
+void COMIX::Single_Process::UpdateKPTerms(const int mode)
 {
   m_x[0]=m_x[1]=1.0;
-  if (!(m_pinfo.m_fi.NLOType()&nlo_type::vsub)) return 0.0;
+  if (!(m_pinfo.m_fi.NLOType()&nlo_type::vsub)) return;
   if (mode==0) {
     Single_Process *sp(p_map!=NULL?p_map:this);
     double eta0=1.0, eta1=1.0;
@@ -453,6 +451,12 @@ double COMIX::Single_Process::GetKPTerms
     p_kpterms->Calculate
       (p_int->Momenta(),m_x[0],m_x[1],eta0,eta1,w);
   }
+}
+
+double COMIX::Single_Process::KPTerms(const int mode,
+                                      double scalefac2)
+{
+  if (!(m_pinfo.m_fi.NLOType()&nlo_type::vsub)) return 0.0;
   double eta0(0.0), eta1(0.0);
   if (mode==0) {
     eta0=p_int->Momenta()[0].PPlus()/rpa->gen.PBeam(0).PPlus();
@@ -462,7 +466,8 @@ double COMIX::Single_Process::GetKPTerms
     eta0=p_int->Momenta()[0].PPlus()/rpa->gen.PBeam(1).PMinus();
     eta1=p_int->Momenta()[1].PMinus()/rpa->gen.PBeam(0).PPlus();
   }
-  return p_kpterms->Get(m_x[0],m_x[1],eta0,eta1,fl,mode);
+  return m_w * p_kpterms->Get(m_x[0], m_x[1], eta0, eta1,
+                              m_flavs, mode, scalefac2);
 }
 
 void COMIX::Single_Process::FillMEWeights(ME_Weight_Info &wgtinfo) const

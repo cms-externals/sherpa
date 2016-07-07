@@ -113,7 +113,6 @@ void Standard_Model::ParticleInit()
 
 bool Standard_Model::ModelInit(const PDF::ISR_Handler_Map& isr)
 {
-  p_dataread->RereadInFile();
   FixEWParameters();  
   FixCKM();
   SetAlphaQCD(isr);
@@ -151,7 +150,6 @@ void Standard_Model::FixEWParameters()
     csin2thetaW=p_dataread->GetValue<double>("SIN2THETAW",0.23);
     ccos2thetaW=1.-csin2thetaW;
     cvev=p_dataread->GetValue<double>("VEV",246.);
-    if (widthscheme=="CMS") THROW(not_implemented,"No CMS in EW_SCHEME=0");
     break;
   case 1: {
     // SM parameters given by alphaQED0, M_W, M_Z, M_H

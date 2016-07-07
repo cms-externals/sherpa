@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("COMIX/Amplitude","trunk/SHERPA","26134","8b14b2fa7eb9da7561ec22333049f569");
+("COMIX/Amplitude","branches/rel-2-2-1","28647","5c502f5e0cabcb927498957ff5cd8460");

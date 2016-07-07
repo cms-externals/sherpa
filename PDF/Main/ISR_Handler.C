@@ -162,6 +162,7 @@ bool ISR_Handler::CheckConsistency(ATOOLS::Flavour *partons)
 {
   bool fit = 1;
   for (int i=0;i<2;i++) {
+    if (partons[i].Kfcode()==0) continue;
     if (p_isrbase[i]->On()) {
       fit = PDF(i)->Contains(partons[i]);
       if (fit == 0) {
@@ -297,7 +298,6 @@ double ISR_Handler::PDFWeight(const int mode,Vec4D p1,Vec4D p2,
   // mode&1 -> swap beams
   // mode&2 -> override m_mode and only calc left beam
   // mode&4 -> override m_mode and only calc right beam
-  // mode&8 -> do not include flux
   if (m_mode==0) return 1.;
   msg_IODebugging()<<METHOD<<"(mode = "<<mode<<")\n";
   if (fl1.Size()>1 || fl2.Size()>1)
