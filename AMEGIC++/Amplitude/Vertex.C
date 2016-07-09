@@ -421,9 +421,10 @@ int Vertex::SetVertex(Single_Vertex& orig, Single_Vertex& probe, int i0, int i1,
 void Vertex::ColorExchange(MODEL::Color_Function* colfunc,int new0,int new1,int new2,int new3)
 {
   int  partarg[3]  ={-1,-1,-1};
-  char strarg[3]   ={'?','?','?'};
+
+  signed char strarg[3]   ={-1,-1,-1};
   int  partargn[3] ={-1,-1,-1};
-  char strargn[3]  ={'?','?','?'};
+  signed char strargn[3]  ={-1,-1,-1};
  
   //T[0,1,2] -> T[new0,new1,new2]
   for (short int i=0;i<3;i++) {
