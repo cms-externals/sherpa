@@ -1,7 +1,65 @@
-This is Sherpa.info, produced by makeinfo version 5.1 from Sherpa.texi.
+This is Sherpa.info, produced by makeinfo version 6.1 from Sherpa.texi.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License.
+
+
+
+File: Sherpa.info,  Node: Tops plus W in MC@NLO,  Prev: Top quark pair production,  Up: TopsJets
+
+9.4.2 Production of a top quark pair in association with a W-boson
+------------------------------------------------------------------
+
+     (run){
+       % general settings
+       EVENTS 10000;
+
+       % tags and settings for scale definitions
+       FSF:=1.0; RSF:=1.0; QSF:=1.0;
+       SCALES STRICT_METS{FSF*MU_F2}{RSF*MU_R2}{QSF*MU_Q2};
+
+       % tags and settings for ME generators
+       LGEN:=OpenLoops;
+       ME_SIGNAL_GENERATOR Comix Amegic LGEN;
+       EVENT_GENERATION_MODE Weighted;
+
+       % settings for hard decays
+       HARD_DECAYS On;
+       HDH_STATUS[24,2,-1]=0;
+       HDH_STATUS[24,4,-3]=0;
+       HDH_STATUS[24,16,-15]=0;
+
+       % model parameters
+       WIDTH[6] 0; WIDTH[24] 0;
+
+       % technical parameters
+       EXCLUSIVE_CLUSTER_MODE 1;
+
+       % collider setup
+       BEAM_1 2212; BEAM_ENERGY_1 4000;
+       BEAM_2 2212; BEAM_ENERGY_2 4000;
+     }(run);
+
+     (processes){
+       Process 93 93 -> 6 -6 24;
+       NLO_QCD_Mode MC@NLO;
+       ME_Generator Amegic;
+       RS_ME_Generator Comix;
+       Loop_Generator LGEN;
+       Order (*,1);
+       End process;
+     }(processes);
+
+Things to notice:
+   * Hard decays are enabled through 'HARD_DECAYS=On' and spin
+     correlations are switched on through 'HARD_SPIN_CORRELATIONS=1'
+   * Top quarks and W bosons are set unstable through 'STABLE[6]=0'
+     'STABLE[24]=0'.  As they are final states in the hard matrix
+     elements, their width is set to zero using 'WIDTH[6]=0' and
+     'WIDTH[24]=0'.
+   * Certain decay channels are disabled using
+     'HDH_NO_DECAY={24,2,-1}|{24,4,-3}|{24,16,-15}'
+
 
 File: Sherpa.info,  Node: VVJets,  Next: MSSM/UFO,  Prev: TopsJets,  Up: Examples
 
@@ -909,19 +967,14 @@ designated class "MEProcess" is provided by interface to compute matrix
 elements as illustrated in the example script.
 
 Please note that the process in the script must be compatible with the
-one specified in the run card in the working directory.  This also
-applies to the initial state particle momenta as well as the masses of
-all external particles.
+one specified in the run card in the working directory.  A random phase
+space point for the process of interes can be generated as shown in the
+example.
 
 If AMEGIC++ is used as the matrix element generator, executing the
 script will result in AMEGIC++ writing out libraries and exiting.  After
 compiling the libraries using './makelibs', the script must be executed
 again in order to obtain the matrix element.
-
-If this is the case, the library libSherpaMain.so must be preloaded,
-which can be achieved on a linux system via setting LD_PRELOAD
-accordingly:
-export LD_PRELOAD=<prefix>/lib/SHERPA-MC/libSherpaMain.so
 
      #!/usr/bin/env python2
      @LOADMPIFORPY@
@@ -950,10 +1003,20 @@ export LD_PRELOAD=<prefix>/lib/SHERPA-MC/libSherpaMain.so
          Process.SetMomentum(1, 45.6,0.,0.,-45.6)
          Process.SetMomentum(2, 45.6,0.,45.6,0.)
          Process.SetMomentum(3, 45.6,0.,-45.6,0.)
+         print '\nSquared ME: ', Process.CSMatrixElement()
 
-         print '\nSquared matrix element:'
-         print Process.CSMatrixElement()
-         print '\n'
+         # Momentum setting via list of floats
+         Process.SetMomenta([[45.6,0.,0.,45.6],
+                             [45.6,0.,0.,-45.6],
+                             [45.6,0.,45.6,0.],
+                             [45.6,0.,-45.6,0.]])
+         print '\nSquared ME: ', Process.CSMatrixElement()
+
+         # Random momenta
+         E_cms = 500.0
+         tp = Process.TestPoint(E_cms)
+         print '\nRandom test point: ', tp[0], tp[1], tp[2], tp[3]
+         print 'Squared ME: ', Process.CSMatrixElement(), '\n'
 
      except Sherpa.Exception as exc:
          print exc
@@ -1835,7 +1898,9 @@ Appendix B Index
 * PROFILE_FUNCTION:                      PROFILE_FUNCTION.    (line   6)
 * PROFILE_PARAMETERS:                    PROFILE_PARAMETERS.  (line   6)
 * PSI_ITMAX:                             PSI_ITMAX.           (line   6)
+* PSI_ITMAX_BY_NODE:                     PSI_ITMAX_BY_NODE.   (line   6)
 * PSI_ITMIN:                             PSI_ITMIN.           (line   6)
+* PSI_ITMIN_BY_NODE:                     PSI_ITMIN_BY_NODE.   (line   6)
 * PSI_NMAX:                              PSI_NMAX.            (line   6)
 * PT^2_0:                                Fragmentation.       (line 126)
 * PT_MAX:                                Fragmentation.       (line 126)

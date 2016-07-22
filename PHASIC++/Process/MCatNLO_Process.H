@@ -1,6 +1,9 @@
 #ifndef PHASIC_Process_MCATNLO_Process_H
 #define PHASIC_Process_MCATNLO_Process_H
 
+#include "ATOOLS/Org/Smart_Pointer.H"
+#include "SHERPA/Tools/Variations.H"
+
 #include "PHASIC++/Process/Process_Base.H"
 
 namespace ATOOLS { class Cluster_Amplitude; }
@@ -28,6 +31,8 @@ namespace PHASIC {
     double m_lastrs, m_lastb, m_lastvi;
     int    m_fomode, m_hpsmode, m_kfacmode, m_wassevent;
 
+    std::string m_rsscale;
+
     ATOOLS::StringIDipSet_Map m_iinfo;
     ATOOLS::StringDDipSet_Map m_dinfo;
 
@@ -47,6 +52,34 @@ namespace PHASIC {
 
     double OneSEvent(const int wmode);
     double OneHEvent(const int wmode);
+
+    /*!
+     * @param bvi  double Differential XS for BVI
+     * @param b    double Differential XS for B
+     * @param rs   double Differential XS for RS
+     * @param r    double Differential XS for R 
+     * @param ran  double Random number used to select S/H
+     * @param ampl Cluster_Amplitude Amplitude which should be updated with the
+     *             local K factor when S is selected
+     * @return
+     *
+     * This method calculates the local Kfactor for MENLOPS for given
+     * differential XS values
+     */
+    double LocalKFactor(double bvi, double b, double rs, double r,
+                        double random,
+                        const ATOOLS::Cluster_Amplitude *ampl=NULL);
+
+    struct KFactorReweightingInfo {
+      double m_random;
+      SP(SHERPA::Variation_Weights) m_rsvarweights;
+      SP(SHERPA::Variation_Weights) m_bvivarweights;
+      SP(SHERPA::Variation_Weights) m_bvarweights;
+    };
+
+    double ReweightLocalKFactor(SHERPA::Variation_Parameters *,
+                                SHERPA::Variation_Weights *,
+                                KFactorReweightingInfo &);
 
   public:
 
@@ -75,7 +108,7 @@ namespace PHASIC {
     void SetFixedScale(const std::vector<double> &s);
     void SetSelector(const Selector_Key &key);
     void SetShower(PDF::Shower_Base *const ps);
-
+    void SetVariationWeights(SHERPA::Variation_Weights *const);
     void SetClusterDefinitions
     (PDF::Cluster_Definitions_Base *const cluster);
 

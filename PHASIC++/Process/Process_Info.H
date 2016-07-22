@@ -50,6 +50,10 @@ namespace PHASIC {
     int Combine(const size_t &i,const size_t &j,
 		const ATOOLS::Flavour &flij);
 
+    std::vector<ATOOLS::Flavour_Vector> ExtractMPL() const;
+
+    bool operator<(const Process_Info &pi) const;
+
   };// end of struct Process_Info
 
   std::ostream &operator<<(std::ostream &ostr,const Process_Info &info);

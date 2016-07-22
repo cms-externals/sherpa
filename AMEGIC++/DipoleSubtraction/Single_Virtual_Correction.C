@@ -37,8 +37,9 @@ Single_Virtual_Correction::Single_Virtual_Correction() :
   p_psgen(0), p_partner(this), p_LO_process(NULL), 
   p_dipole(0), p_kpterms(0), p_loopme(0),
   m_bsum(0.0), m_vsum(0.0), m_isum(0.0), m_n(0.0),
-  m_mbsum(0.0), m_mvsum(0.0), m_misum(0.0), m_mn(0.0)
-{ 
+  m_mbsum(0.0), m_mvsum(0.0), m_misum(0.0), m_mn(0.0),
+  m_loopmapped(true)
+{
   m_dalpha = 1.;
   m_kpcemode = 0;
   int helpi;
@@ -95,6 +96,10 @@ Single_Virtual_Correction::Single_Virtual_Correction() :
     msg_Tracking()<<"Set ii dipole cut alpha="<<m_dalpha_ii<<" . "<<std::endl;
   }
   else m_dalpha_ii=m_dalpha;
+  if (reader.VectorFromFile(m_nomapflavs,"AMEGIC_NOMAP_FLAVS")) {
+    msg_Info()<<METHOD<<"(): Do not map processes with the following flavours "
+              <<m_nomapflavs<<" . "<<std::endl;
+  }
   m_force_init=reader.GetValue("LOOP_ME_INIT",0);
   m_checkloopmap=reader.GetValue("CHECK_LOOP_MAP",0);
   m_sccmur=reader.GetValue("USR_WGT_MODE",1);
@@ -171,7 +176,7 @@ void Single_Virtual_Correction::SelectLoopProcess()
   if (m_pinfo.m_fi.m_nloqcdtype&nlo_type::loop || m_force_init) {
     Process_Info loop_pi(m_pinfo);
     loop_pi.m_fi.m_nloqcdtype=nlo_type::loop;
-    p_loopme=PHASIC::Virtual_ME2_Base::GetME2(loop_pi);  
+    p_loopme=PHASIC::Virtual_ME2_Base::GetME2(loop_pi);
     if (!p_loopme) {
       THROW(not_implemented, "Couldn't find virtual ME for this process.");
     }
@@ -225,27 +230,23 @@ int Single_Virtual_Correction::InitAmplitude(Amegic_Model * model,Topology* top,
 
   PolarizationNorm();
 
-  string sfname = rpa->gen.Variable("SHERPA_CPP_PATH")+"/Process/Amegic/"+m_ptypename+"/"+Name()+".sym";
-  if (FileExists(sfname)) {
-    My_In_File in(sfname);
-    if (!in.Open()) THROW(fatal_error,"Cannot open "+sfname);
-    double symf;
-    *in>>symf;
-    m_Norm*=symf;
-    in.Close();
-  }
-
   if (!p_LO_process->InitAmplitude(model,top,links,errs,m_checkloopmap)) return 0;
   m_iresult = p_LO_process->Result();
-  nlo_type::code nlot(nlo_type::loop|nlo_type::vsub);
-  m_maxcpl[0] = p_LO_process->MaxOrder(0)+
-    ((m_pinfo.m_fi.m_nloqcdtype&nlot)?1:0);
-  m_mincpl[0] = p_LO_process->MinOrder(0)+
-    ((m_pinfo.m_fi.m_nloqcdtype&nlot)?1:0);
-  m_maxcpl[1] = p_LO_process->MaxOrder(1)+
-    ((m_pinfo.m_fi.m_nloewtype&nlot)?1:0);
-  m_mincpl[1] = p_LO_process->MinOrder(1)+
-    ((m_pinfo.m_fi.m_nloewtype&nlot)?1:0);
+  if (p_LO_process==p_LO_process->Partner()) {
+    nlo_type::code nlot(nlo_type::loop|nlo_type::vsub);
+    m_maxcpl[0] = p_LO_process->MaxOrder(0)+
+      ((m_pinfo.m_fi.m_nloqcdtype&nlot)?1:0);
+    m_mincpl[0] = p_LO_process->MinOrder(0)+
+      ((m_pinfo.m_fi.m_nloqcdtype&nlot)?1:0);
+    m_maxcpl[1] = p_LO_process->MaxOrder(1)+
+      ((m_pinfo.m_fi.m_nloewtype&nlot)?1:0);
+    m_mincpl[1] = p_LO_process->MinOrder(1)+
+      ((m_pinfo.m_fi.m_nloewtype&nlot)?1:0);
+  }
+  else {
+    m_maxcpl=p_LO_process->Partner()->MaxOrders();
+    m_mincpl=p_LO_process->Partner()->MinOrders();
+  }
   m_pinfo.m_mincpl.resize(m_mincpl.size());
   m_pinfo.m_maxcpl.resize(m_maxcpl.size());
   for (size_t i(0);i<m_mincpl.size();++i) m_pinfo.m_mincpl[i]=m_mincpl[i];
@@ -264,6 +265,14 @@ int Single_Virtual_Correction::InitAmplitude(Amegic_Model * model,Topology* top,
 	InitFlavmap(p_partner);
 	m_sfactor = p_LO_process->GetSFactor();
 	m_cpls=p_partner->m_cpls;
+	for (size_t i(0);i<m_nomapflavs.size();++i) {
+	  for (size_t k(0);k<m_flavs.size();++k) {
+	    if (m_flavs[k].Kfcode()==m_nomapflavs[i]) {
+	      m_loopmapped=false;
+	      break;
+	    }
+	  }
+	}
  	break;
       }
     }
@@ -273,9 +282,11 @@ int Single_Virtual_Correction::InitAmplitude(Amegic_Model * model,Topology* top,
     p_LO_process->SetMaxOrders(m_maxcpl);
   }
 
-  if (p_partner==this) {
+  if (p_partner==this || !m_loopmapped) {
     SelectLoopProcess();
+  }
 
+  if (p_partner==this) {
     links.push_back(this);
     p_dsij.resize(p_LO_process->PartonList().size());
     for (size_t i=0;i<p_LO_process->PartonList().size();i++) {
@@ -401,7 +412,7 @@ void Single_Virtual_Correction::Minimize()
   if (p_psgen)      { delete p_psgen; p_psgen=0; }
   if (p_dipole)     { delete p_dipole; p_dipole=0;}
   if (p_kpterms)    { delete p_kpterms; p_kpterms=0;}
-  if (p_loopme)     { delete p_loopme; p_loopme=0;}
+  if (p_loopme && m_loopmapped) { delete p_loopme; p_loopme=0;}
 
   m_maxcpl     = p_partner->MaxOrders();
   m_mincpl     = p_partner->MinOrders();
@@ -456,36 +467,94 @@ double Single_Virtual_Correction::DSigma(const ATOOLS::Vec4D_Vector &_moms,bool 
     }
     m_lastbxs = p_partner->m_lastbxs*m_sfactor;
     m_lastb=p_partner->m_lastb*m_sfactor;
-    m_lastv=p_partner->m_lastv*m_sfactor;
+    m_lastv=Calc_V_WhenMapped(_moms);
     m_lasti=p_partner->m_lasti*m_sfactor;
   }
-  double eta0(0.0), eta1(0.0);
-  if (mode==0) {
-    eta0=p_int->Momenta()[0].PPlus()/rpa->gen.PBeam(0).PPlus();
-    eta1=p_int->Momenta()[1].PMinus()/rpa->gen.PBeam(1).PMinus();
-  }
-  else {
-    eta0=p_int->Momenta()[0].PPlus()/rpa->gen.PBeam(1).PMinus();
-    eta1=p_int->Momenta()[1].PMinus()/rpa->gen.PBeam(0).PPlus();
-  }
-  double kpterm = (p_partner->m_bvimode&2)?p_partner->Get_KPterms
-    (p_int->ISR()->PDF(mode),p_int->ISR()->PDF(1-mode),eta0,eta1,m_flavs):0.0;
-  if (p_partner != this) kpterm*=m_sfactor;
-  m_lastkp=kpterm;
 
   m_mewgtinfo.m_B = m_lastbxs/m_sfactor;
   m_mewgtinfo.m_VI = (m_lastv+m_lasti)/m_sfactor;
-  m_mewgtinfo.m_KP = m_lastkp/m_sfactor;
   p_partner->FillMEwgts(m_mewgtinfo);
   m_mewgtinfo*=m_Norm*m_sfactor;
+
+  const double kpterm(KPTerms(0));
+  m_lastkp = kpterm / m_Norm;
+  m_mewgtinfo.m_KP = kpterm;
 
   p_partner->m_bvimode=bvimode;
 
   m_lastbxs*=m_Norm;
-  return m_lastxs = wgt * m_Norm * (m_lastdxs+kpterm);
+  return m_lastxs = wgt * m_Norm * (m_lastdxs+m_lastkp);
 }
 
-double Single_Virtual_Correction::Calc_Imassive(const ATOOLS::Vec4D *mom) 
+double Single_Virtual_Correction::Calc_V_WhenMapped
+(const ATOOLS::Vec4D_Vector &mom)
+{
+  if (m_loopmapped) return p_partner->m_lastv*m_sfactor;
+  if (!p_loopme) THROW(fatal_error,"No Loop ME set for "+Name());
+  DEBUG_FUNC(m_loopmapped<<" "<<p_loopme);
+  Vec4D_Vector _mom(mom);
+  Poincare cms;
+  if (m_nin==2 && p_int->ISR() && p_int->ISR()->On()) {
+    cms=Poincare(_mom[0]+_mom[1]);
+    for (size_t i(0);i<_mom.size();++i) cms.Boost(_mom[i]);
+  }
+  double lme(0.);
+  msg_Debugging()<<m_pinfo.m_fi.m_nloqcdtype<<" "<<m_bvimode<<std::endl;
+  if ((m_pinfo.m_fi.m_nloqcdtype&nlo_type::loop) &&
+      (m_bvimode&4)) {
+    msg_Debugging()<<p_loopme->Mode()<<std::endl;
+    msg_Debugging()<<p_kpterms<<" "<<p_dipole<<std::endl;
+    if (p_loopme->Mode()==0) {
+      lme = m_lastb*p_partner->KPTerms()->Coupling()*p_loopme->ME_Finite();
+      if (m_sccmur) {
+        m_cmur[0]+=(p_loopme->ME_E1()+(MaxOrder(0)-1)*p_partner->Dipole()->G2())*
+          m_lastb*p_partner->KPTerms()->Coupling();
+        m_cmur[1]+=p_loopme->ME_E2()*m_lastb*p_partner->KPTerms()->Coupling();
+      }
+      else {
+        m_cmur[0]+=m_lastb*p_partner->KPTerms()->Coupling()*
+          p_loopme->ScaleDependenceCoefficient(1);
+        m_cmur[1]+=m_lastb*p_partner->KPTerms()->Coupling()*
+          p_loopme->ScaleDependenceCoefficient(2);
+      }
+    }
+    else if (p_loopme->Mode()==1) {
+      lme = p_partner->KPTerms()->Coupling()*p_loopme->ME_Finite();
+      if (m_sccmur) {
+        m_cmur[0]+=p_partner->KPTerms()->Coupling()*
+          (p_loopme->ME_E1()+(MaxOrder(0)-1)*p_partner->Dipole()->G2());
+        m_cmur[1]+=p_partner->KPTerms()->Coupling()*p_loopme->ME_E2();
+      }
+      else {
+        m_cmur[0]+=p_partner->KPTerms()->Coupling()*
+          p_loopme->ScaleDependenceCoefficient(1);
+        m_cmur[1]+=p_partner->KPTerms()->Coupling()*
+          p_loopme->ScaleDependenceCoefficient(2);
+      }
+    }
+    else if (p_loopme->Mode()==2) {
+      // loop ME already contains I
+      lme = m_lastb*p_partner->KPTerms()->Coupling()*p_loopme->ME_Finite();
+    }
+    else THROW(not_implemented,"Unknown mode");
+  }
+  if (m_checkpoles)
+    CheckPoleCancelation(&mom.front());
+  if (m_checkborn &&
+      (!m_checkpolesthreshold ||
+       !ATOOLS::IsEqual(m_Norm*m_lastb,p_loopme->ME_Born(),m_checkpolesthreshold))) {
+    msg->SetPrecision(16);
+    msg_Out()<<"Born check: "
+             <<"Sherpa = "<<m_Norm*m_lastb<<" vs. OLE = "<<p_loopme->ME_Born()
+             <<", rel. diff.: "<<(m_Norm*m_lastb-p_loopme->ME_Born())/(m_Norm*m_lastb+p_loopme->ME_Born())
+             <<", ratio: "<<m_Norm*m_lastb/p_loopme->ME_Born()<<std::endl;
+    msg_Out()<<"Virtual: OLE = "<<p_loopme->ME_Finite()<<std::endl;
+    msg->SetPrecision(6);
+  }
+  return lme;
+}
+
+double Single_Virtual_Correction::Calc_Imassive(const ATOOLS::Vec4D *mom)
 {
   double res=0.;
   double mur = p_scale->Scale(stp::ren,1);
@@ -565,14 +634,44 @@ void Single_Virtual_Correction::Calc_KP(const ATOOLS::Vec4D *mom, double x0, dou
   p_kpterms->Calculate(p_int->Momenta(),x0,x1,eta0,eta1,-weight*p_dipole->SPFac()/(16.0*sqr(M_PI)));
 }
 
+double Single_Virtual_Correction::KPTerms(int mode, double scalefac2)
+{
+  // determine momentum fractions
+  double eta0(0.), eta1(0.);
+  if (mode == 0) {
+    eta0 = p_int->Momenta()[0].PPlus() / rpa->gen.PBeam(0).PPlus();
+    eta1 = p_int->Momenta()[1].PMinus() / rpa->gen.PBeam(1).PMinus();
+  }
+  else {
+    eta0 = p_int->Momenta()[0].PPlus() / rpa->gen.PBeam(1).PMinus();
+    eta1 = p_int->Momenta()[1].PMinus() / rpa->gen.PBeam(0).PPlus();
+  }
+  // determine KP terms
+  double kpterm(0.);
+  if (p_partner->m_bvimode & 2) {
+    kpterm = p_partner->Get_KPterms(p_int->ISR()->PDF(mode),
+                                    p_int->ISR()->PDF(1 - mode),
+                                    eta0, eta1,
+                                    m_flavs,
+                                    scalefac2);
+  }
+  // return normalised result
+  if (p_partner != this) {
+    kpterm *= m_sfactor;
+  }
+  return m_Norm * kpterm;
+}
+
 double Single_Virtual_Correction::Get_KPterms(PDF_Base *pdfa, PDF_Base *pdfb,
-					      const double &eta0,const double &eta1,
-					      ATOOLS::Flavour_Vector& flav) 
+                                              const double &eta0,const double &eta1,
+                                              ATOOLS::Flavour_Vector& flav,
+                                              double scalefac2)
 {
   if (!(m_imode&2 || m_imode&4)) return 0.;
   if ((m_pinfo.m_fi.m_nloqcdtype&nlo_type::vsub)==0) return 0.;
   int mode(pdfa==p_int->ISR()->PDF(0)?0:1);
-  return p_kpterms->Get(m_x0,m_x1,eta0,eta1,flav,mode) * KFactor();
+  return p_partner->m_lastki * p_kpterms->Get(m_x0, m_x1, eta0, eta1,
+                                              flav, mode, scalefac2);
 }
 
 void Single_Virtual_Correction::CheckPoleCancelation(const ATOOLS::Vec4D *mom)
@@ -772,7 +871,7 @@ double Single_Virtual_Correction::operator()(const ATOOLS::Vec4D_Vector &mom,con
     msg_Out()<<"Virtual: OLE = "<<p_loopme->ME_Finite()<<std::endl;
     msg->SetPrecision(6);
   }
-  double kfactor(KFactor());
+  double kfactor(m_lastki=KFactor());
   m_lastb=p_dsij[0][0] * kfactor;
   m_lasti=I            * kfactor;
   m_lastv=lme          * kfactor;
@@ -874,22 +973,29 @@ void Single_Virtual_Correction::FillMEwgts(ATOOLS::ME_Weight_Info& wgtinfo)
   if (p_kpterms) p_kpterms->FillMEwgts(wgtinfo);
 }
 
-void Single_Virtual_Correction::MPISync()
+void Single_Virtual_Correction::MPICollect(std::vector<double> &sv,size_t &i)
 {
+  sv.resize(i+4);
+  sv[i+0]=m_mn;
+  sv[i+1]=m_mbsum;
+  sv[i+2]=m_mvsum;
+  sv[i+3]=m_misum;
+  i+=4;
+}
+
+void Single_Virtual_Correction::MPIReturn(std::vector<double> &sv,size_t &i)
+{
+  m_mn=sv[i+0];
+  m_mbsum=sv[i+1];
+  m_mvsum=sv[i+2];
+  m_misum=sv[i+3];
+  i+=4;
+}
+
+void Single_Virtual_Correction::MPISync(const int mode)
+{
+  Process_Base::MPISync(mode);
 #ifdef USING__MPI
-  int size=MPI::COMM_WORLD.Get_size();
-  if (size>1) {
-    double val[4];
-    val[0]=m_mn;
-    val[1]=m_mbsum;
-    val[2]=m_mvsum;
-    val[3]=m_misum;
-    mpi->MPIComm()->Allreduce(MPI_IN_PLACE,val,4,MPI::DOUBLE,MPI::SUM);
-    m_mn=val[0];
-    m_mbsum=val[1];
-    m_mvsum=val[2];
-    m_misum=val[3];
-  }
   m_n+=m_mn;
   m_bsum+=m_mbsum;
   m_vsum+=m_mvsum;

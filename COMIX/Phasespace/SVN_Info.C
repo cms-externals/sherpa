@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("COMIX/Phasespace","trunk/SHERPA","26134","173c33bc2c5ab0a71a3d31dcb116bb6b");
+("COMIX/Phasespace","branches/rel-2-2-1","28647","e330c0feb9424a3eb4034ee19dad61de");

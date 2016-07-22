@@ -24,9 +24,15 @@ namespace PDF {
   class Shower_Base;
 }
 
+namespace SHERPA {
+  class Variation_Weights;
+}
+
 namespace METOOLS { class Spin_Amplitudes; }
 
 namespace PHASIC {
+
+  typedef std::map<int,int> FMMap;
 
   class Process_Integrator;
   class Phase_Space_Handler;
@@ -53,6 +59,8 @@ namespace PHASIC {
     ME_Generator_Base  *p_gen;
 
     PDF::Shower_Base   *p_shower;
+    SHERPA::Variation_Weights *p_variationweights;
+    bool m_variationweightsowned;
     BBar_Multi_Channel *p_mc;
 
 
@@ -77,8 +85,11 @@ namespace PHASIC {
 
     NLOTypeStringProcessMap_Map *p_apmap;
 
-    static void SortFlavours(Subprocess_Info &info);
-    static void SortFlavours(std::vector<ATOOLS::Cluster_Leg*> &legs);
+    static int s_usefmm;
+
+    static void SortFlavours(Subprocess_Info &info,FMMap *const fmm=0);
+    static void SortFlavours(std::vector<ATOOLS::Cluster_Leg*> &legs,
+			     FMMap *const fmm=0);
 
   public:
 
@@ -127,7 +138,9 @@ namespace PHASIC {
     virtual bool ReadIn(const std::string &pid);
     virtual void WriteOut(const std::string &pid);
     virtual void EndOptimize();
-    virtual void MPISync();
+    virtual void MPICollect(std::vector<double> &sv,size_t &i);
+    virtual void MPIReturn(std::vector<double> &sv,size_t &i);
+    virtual void MPISync(const int mode=0);
 
     virtual bool IsGroup() const;
 
@@ -145,6 +158,9 @@ namespace PHASIC {
 
     virtual void SetGenerator(ME_Generator_Base *const gen);
     virtual void SetShower(PDF::Shower_Base *const ps);
+    virtual void SetVariationWeights(SHERPA::Variation_Weights *const);
+    void SetOwnedVariationWeights(SHERPA::Variation_Weights *);
+    SHERPA::Variation_Weights *VariationWeights() const { return p_variationweights; }
     virtual void SetSelector(const Selector_Key &key);
 
     virtual void InitCuts(Cut_Data *const cuts);

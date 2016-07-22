@@ -168,6 +168,11 @@ void LHAPDF_CPP_Interface::CalculateSpec(const double& x,const double& Q2) {
 }
 
 double LHAPDF_CPP_Interface::GetXPDF(const ATOOLS::Flavour& infl) {
+  if (IsBad(m_x) || IsBad(m_Q2)) {
+    msg_Error()<<METHOD<<"(): Encountered bad (x,Q2)=("<<m_x<<","<<m_Q2<<"), "
+                       <<"returning zero."<<std::endl;
+    return 0.;
+  }
   int kfc = m_anti*int(infl);
   if (int(infl)==kf_gluon || int(infl)==kf_photon)
     kfc = int(infl);
@@ -179,6 +184,11 @@ double LHAPDF_CPP_Interface::GetXPDF(const ATOOLS::Flavour& infl) {
 }
 
 double LHAPDF_CPP_Interface::GetXPDF(const kf_code& kf, bool anti) {
+  if (IsBad(m_x) || IsBad(m_Q2)) {
+    msg_Error()<<METHOD<<"(): Encountered bad (x,Q2)=("<<m_x<<","<<m_Q2<<"), "
+                       <<"returning zero."<<std::endl;
+    return 0.;
+  }
   int kfc = m_anti*(anti?-kf:kf);
   if (kf==kf_gluon || kf==kf_photon)
     kfc = kf;
@@ -216,8 +226,12 @@ extern "C" void InitPDFLib()
   const std::vector<std::string>& sets(LHAPDF::availablePDFSets());
   msg_Debugging()<<METHOD<<"(): LHAPDF paths: "<<LHAPDF::paths()<<std::endl;
   msg_Debugging()<<METHOD<<"(): LHAPDF sets: "<<sets<<std::endl;
-  for (size_t i(0);i<sets.size();++i)
+  std::set<std::string> loaded;
+  for (size_t i(0);i<sets.size();++i) {
+    if (loaded.find(sets[i])!=loaded.end()) continue;
     p_get_lhapdf.push_back(new LHAPDF_Getter(sets[i]));
+    loaded.insert(sets[i]);
+  }
 }
 
 extern "C" void ExitPDFLib()

@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("MODEL/HEFT","trunk/SHERPA","26134","5c49855ba11abf072d70c393a5ed89ea");
+("MODEL/HEFT","branches/rel-2-2-1","28647","26a9009dee3277a2b41ba3b512004f57");

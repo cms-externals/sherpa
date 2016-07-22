@@ -58,9 +58,13 @@ PDF_NNPDF::PDF_NNPDF
 (const ATOOLS::Flavour &bunch,
  const std::string &bfile,
  const std::string &set,int member, int prefix):
-  m_path(rpa->gen.Variable("SHERPA_SHARE_PATH")),
   m_file(bfile), m_anti(1)
 {
+  Data_Reader read(" ",";","!","=");
+  read.AddComment("#");
+  read.AddWordSeparator("\t");
+  m_path=read.GetValue<string>("NNPDF_GRID_PATH",
+                               rpa->gen.Variable("SHERPA_SHARE_PATH"));
   m_set=set;
   m_member=member;
   m_prefix=prefix;
@@ -70,7 +74,7 @@ PDF_NNPDF::PDF_NNPDF
   
   m_bunch=bunch; // This is the beam
   if (m_bunch==Flavour(kf_p_plus).Bar()) m_anti=-1;
-  m_type="NNPDF"; // A wild guess
+  m_type=m_set;
   // initialise all book-keep arrays etc.
   // This is copied from LHAPDF_CPP_Interface.C
   std::vector<int> kfcs;

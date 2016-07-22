@@ -18,8 +18,6 @@ namespace AMEGIC {
     int             m;
     int             propid;
     ATOOLS::Flavour   fl;
-    ATOOLS::Flavour * extrafl;
-    int                  nextra;
     Point              * left;
     Point              * right;
     Point              * middle;
@@ -35,9 +33,8 @@ namespace AMEGIC {
     Point& operator=(const Point& p);
     
     ~Point() {
-      if (nextra>0) delete[] extrafl;
-      delete Color;
-      if (Lorentz) delete Lorentz;
+      if (Color) delete Color;
+      if (Lorentz) Lorentz->Delete();
     }
     void Print();
     void ResetExternalNumbers(int);

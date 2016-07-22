@@ -36,6 +36,14 @@ ATOOLS::Flavour_Vector Process_Info::ExtractFlavours() const
   return flavs;
 }
 
+std::vector<ATOOLS::Flavour_Vector> Process_Info::ExtractMPL() const
+{
+  std::vector<ATOOLS::Flavour_Vector> fl;
+  m_ii.ExtractMPL(fl);
+  m_fi.ExtractMPL(fl);
+  return fl;
+}
+
 bool Process_Info::Has(nlo_type::code nlotype) const
 {
   if (m_fi.m_nloewtype==nlo_type::lo) {
@@ -57,4 +65,13 @@ int Process_Info::Combine(const size_t &i,const size_t &j,
   if (res<0) THROW(fatal_error,"Removed initial state particle");
   res=m_fi.Combine(i,j,flij,cnt);
   return -res;
+}
+
+bool Process_Info::operator<(const Process_Info &pi) const
+{
+  if (m_ii<pi.m_ii) return true;
+  if (!(m_ii==pi.m_ii)) return false;
+  if (m_fi<pi.m_fi) return true;
+  if (!(m_fi==pi.m_fi)) return false;
+  return false;
 }

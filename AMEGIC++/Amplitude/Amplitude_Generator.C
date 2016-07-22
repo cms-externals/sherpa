@@ -64,14 +64,14 @@ void Amplitude_Generator::Set_End(Point* p,int* &perm,int& pnum)
     p->number = *perm;
     p->fl = fl[*perm];
     p->b  = b[*perm];
-    if (p->Lorentz) delete p->Lorentz;
-    if (p->fl.IsBoson()) {
-      p->Lorentz = LF_Getter::GetObject("Pol",LF_Key());
-      p->Lorentz->SetParticleArg(0);
+    if (p->Lorentz) {
+      p->Lorentz->Delete();
+      p->Lorentz=NULL;
     }
-    else {
-      p->Lorentz = LF_Getter::GetObject("None",LF_Key());
-      p->Lorentz->SetParticleArg();
+    if (p->fl.IsBoson()) {
+      if (p->Color==NULL) p->Color = new Color_Function();
+      p->Lorentz = LF_Pol::New();
+      p->Lorentz->SetParticleArg(0);
     }
 
     perm++;
@@ -88,7 +88,7 @@ void Amplitude_Generator::Next_P(Point* p,Point* &hit)
   if (hit) return;
   if (p==0) return;
   if ((p->left!=0) && (p->right!=0)) {
-    if ((p->left->fl==Flavour(kf_none)) || (p->right->fl==Flavour(kf_none))) {
+    if (p->left->fl.Kfcode()==0 || p->right->fl.Kfcode()==0) {
       hit = p;
       return;
     }
@@ -117,29 +117,11 @@ void Amplitude_Generator::Print_P(Point* p)
   }
 }
 
-int Amplitude_Generator::MatchVertex(AMEGIC::Single_Vertex* v,Flavour* flav,vector<Complex>& cpl)
-{
-  if (v->dec>0) return false;
-  if (flav[0] == v->in[0]) {
-    int hit = 1;
-    if (flav[1] != Flavour(kf_none)) {if (flav[1] != v->in[1]) hit = 0;}
-    else { flav[1] = v->in[1];}
-    if (flav[2] != Flavour(kf_none)) {if (flav[2] != v->in[2]) hit = 0;}
-    else { flav[2] = v->in[2];}
-    if (hit==1) {
-      cpl.clear();
-      for (size_t j=0;j<v->cpl.size();j++) cpl.push_back(v->Coupling(j));
-      return 1;
-    }
-  }
-  return 0;
-}
-
 int Amplitude_Generator::CheckEnd(Point* p,Flavour infl) 
 {
   if (p==0) return 1;
   if (p->left==0) return 1;
-  if (((p->left->fl)!=Flavour(kf_none)) && ((p->right->fl)!=Flavour(kf_none))) { 
+  if (p->left->fl.Kfcode() && p->right->fl.Kfcode()) { 
     Flavour flav[3];
     Flavour s_flav[3];
     vector <Complex> cpl;
@@ -188,8 +170,9 @@ int Amplitude_Generator::CheckEnd(Point* p,Flavour infl)
 	p->cpl.clear();
 	for (size_t k=0;k<cpl.size();k++) p->cpl.push_back(cpl[k]);
 	p->v = vl[j];
+	if (p->Color==NULL) p->Color = new Color_Function();
 	*p->Color = vl[j]->Color.back();
-	if (p->Lorentz) delete p->Lorentz;
+	if (p->Lorentz) p->Lorentz->Delete();
 	p->Lorentz = vl[j]->Lorentz.front()->GetCopy();
 	p->t = vl[j]->t;
 	return 1;
@@ -244,43 +227,43 @@ void Amplitude_Generator::SetProps(Point* pl,int dep,Single_Amplitude* &first,in
       flav[1] = p->left->fl;
       flav[2] = p->right->fl;
 
-      if (p->left->fl  == Flavour(kf_none)) p->left->b  = 0;
-      if (p->right->fl == Flavour(kf_none)) p->right->b = 0;
+      if (p->left->fl.Kfcode()==0) p->left->b  = 0;
+      if (p->right->fl.Kfcode()==0) p->right->b = 0;
 
       if (flav[0].Majorana()) {
-	if (p->left->fl != Flavour(kf_none)) {
+	if (p->left->fl.Kfcode()) {
 	  if (p->left->fl.IsFermion()) {
 	    if (p->b*p->left->b == 1)  flav[1] = flav[1].Bar();
 	  }
 	  else if (p->left->b   == -1) flav[1] = flav[1].Bar();
 	}
-	if (p->left->fl==Flavour(kf_none)) p->left->b = p->b;
+	if (p->left->fl.Kfcode()==0) p->left->b = p->b;
 	
-	if (p->right->fl != Flavour(kf_none)) {
+	if (p->right->fl.Kfcode()) {
 	  if (p->right->fl.IsFermion()) {
 	    if (p->b*p->right->b == 1)  flav[2] = flav[2].Bar();
 	}
 	else if (p->right->b  == -1) flav[2] = flav[2].Bar();  
 	}
-	if (p->right->fl==Flavour(kf_none)) p->right->b = p->b;
+	if (p->right->fl.Kfcode()==0) p->right->b = p->b;
       }
       else {
 	if (flav[0].IsBoson()) {
 	  if (p->left->b   == -1) flav[1] = flav[1].Bar();
 	  if (p->right->b  == -1) flav[2] = flav[2].Bar();
-	  if (p->left->fl  == Flavour(kf_none)) p->left->b  = -1;
-	  if (p->right->fl == Flavour(kf_none)) p->right->b = -1;
+	  if (p->left->fl.Kfcode()==0) p->left->b  = -1;
+	  if (p->right->fl.Kfcode()==0) p->right->b = -1;
 	}
 	else {
 	  if (flav[0].IsAnti()) {
 	    if (p->b*p->left->b == 1)  flav[1] = flav[1].Bar();
 	    if (p->right->b     ==-1)  flav[2] = flav[2].Bar();
-	    if (p->left->fl     == Flavour(kf_none)) p->left->b = p->b;
+	    if (p->left->fl.Kfcode()==0) p->left->b = p->b;
 	  }
 	  else {
 	    if (p->b*p->right->b == 1) flav[2] = flav[2].Bar();
 	    if (p->left->b       ==-1) flav[1] = flav[1].Bar();
-	    if (p->right->fl     == Flavour(kf_none)) p->right->b = p->b;
+	    if (p->right->fl.Kfcode()==0) p->right->b = p->b;
 	  }
 	}
       }
@@ -315,11 +298,12 @@ void Amplitude_Generator::SetProps(Point* pl,int dep,Single_Amplitude* &first,in
 	  //match
 	  int ll = 0;
 	  top->Copy(prea[ap].p,preah,ll);
-	  if (p->left->fl==Flavour(kf_none))  p->left->fl  = flav[1];
-	  if (p->right->fl==Flavour(kf_none)) p->right->fl = flav[2];
+	  if (p->left->fl.Kfcode()==0)  p->left->fl  = flav[1];
+	  if (p->right->fl.Kfcode()==0) p->right->fl = flav[2];
 	  p->v          = vl[i];
+	  if (p->Color==NULL) p->Color = new Color_Function();
 	  *p->Color = vl[i]->Color.back();
-	  if (p->Lorentz) delete p->Lorentz;
+	  if (p->Lorentz) p->Lorentz->Delete();
 	  p->Lorentz = vl[i]->Lorentz.front()->GetCopy();
 	  p->t = vl[i]->t;
 	  
@@ -442,77 +426,6 @@ void Amplitude_Generator::CreateSingleAmplitudes(Single_Amplitude * & first) {
       }
     }
   }
-}
-
-void Amplitude_Generator::Unite(Point* p,Point* pdel)
-{
-  int depth = single_top->depth;
-  Point psave;
-  for (short int i=0;i<depth;i++) {
-    if (p[i].number==pdel[i].number) {
-      if (p[i].fl!=pdel[i].fl) {
-	// Double Counting !!!!!!!!!!!!!!
-	int sw1 = 1;
-	for (short int j=0;j<p[i].nextra;j++) {
-	  if (p[i].extrafl[j]==pdel[i].fl) {
-	    sw1 = 0;
-	    break;
-	  }
-	}
-	if (sw1==1) {
-	  psave = p[i];
-	
-	  if (p[i].nextra>0) delete[] p[i].extrafl;
-	  p[i].cpl.clear();
-	  
-	  int nfl  = 1+pdel[i].nextra+p[i].nextra;
-	  
-	  p[i].extrafl = new Flavour[nfl];
-	  
-	  //Flavour
-	  int count = 0;
-	  for (short int j=0;j<psave.nextra;j++)
-	    p[i].extrafl[j] = psave.extrafl[j];   
-	  count += psave.nextra;
-	  
-	  p[i].extrafl[count] = pdel[i].fl;
-	  count++;
-	  for (short int j=0;j<pdel[i].nextra;j++)
-	    p[i].extrafl[count+j] = pdel[i].extrafl[j];			
-	  p[i].nextra = nfl;
-	  
-	  //Couplings
-	  count = 0;
-	  p[i].cpl.clear();
-	  for (size_t j=0;j<psave.Ncpl();j++) p[i].cpl.push_back(psave.cpl[j]);   
-	  count += psave.Ncpl();
-	  for (size_t j=0;j<pdel[i].Ncpl();j++) p[i].cpl.push_back(pdel[i].cpl[j]);			
-	  
-	  //previous couplings too
-	  int hit = -1;
-	  for (short int j=0;j<depth;j++) {
-	    if (p[j].left==&p[i] || p[j].right==&p[i]) {
-	      hit = j;
-	      break;
-	    }
-	  }
-	  if (hit!=-1) {
-	    psave = p[hit];
-	    p[hit].cpl.clear();
-	    
-	    //Couplings
-	    count = 0;
-	    for (size_t j=0;j<psave.Ncpl();j++) p[hit].cpl.push_back(psave.cpl[j]);   
-	    count += psave.Ncpl();
-	    for (size_t j=0;j<pdel[hit].Ncpl();j++) p[hit].cpl.push_back(pdel[hit].cpl[j]);			
-	  }
-	  else 
-	    msg_Error()<<"ERROR in Amplitude_Generator"<<endl
-			       <<"   Continue and hope for the best ..."<<std::endl;
-	}
-      }
-    }
-  } 
 }
 
 int Amplitude_Generator::CompareColors(Point* p1,Point* p2)
@@ -666,8 +579,12 @@ int Amplitude_Generator::Compare5Vertex(Point* p1,Point* p2)
     p42=p2->right;
   }
 
-  if (!CompareColors(p41,p42)) return 0;
-
+  if (!CompareColors(p41,p42)) {
+    delete[] pts1;
+    delete[] pts2;
+    return 0;
+  }
+  
   int hit = 0;
   Permutation perm(4);
   for (int i=0;i<perm.MaxNumber()&&!hit;i++) {
@@ -924,7 +841,7 @@ int Amplitude_Generator::ShrinkProps(Point*& p,Point*& pnext, Point*& pcopy, Poi
 
 	  if ((*v)(i)->Color.size()==1) {
 	    *pcopy->Color = (*v)(i)->Color.back();
-            if (pcopy->Lorentz) delete pcopy->Lorentz;
+            if (pcopy->Lorentz) pcopy->Lorentz->Delete();
 	    pcopy->Lorentz = (*v)(i)->Lorentz.front()->GetCopy();
 	    pcopy->t = (*v)(i)->t;
             break;
@@ -932,7 +849,7 @@ int Amplitude_Generator::ShrinkProps(Point*& p,Point*& pnext, Point*& pcopy, Poi
           else {
 	    for (size_t k=0;k<(*v)(i)->Color.size();k++) {
 	      *pcopy->Color = (*v)(i)->Color[k];
-              if (pcopy->Lorentz) delete pcopy->Lorentz;
+              if (pcopy->Lorentz) pcopy->Lorentz->Delete();
 	      pcopy->Lorentz = (*v)(i)->Lorentz[k]->GetCopy();
 	      pcopy->t = (*v)(i)->t;
 

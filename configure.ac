@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(SHERPA MC, 2.2.0, sherpa@projects.hepforge.org, SHERPA-MC)
+AC_INIT(SHERPA MC, 2.2.1, sherpa@projects.hepforge.org, SHERPA-MC)
 AC_CONFIG_MACRO_DIR([m4])
 AM_CONFIG_HEADERS(config.h ATOOLS/Org/CXXFLAGS.H ATOOLS/Org/CXXFLAGS_PACKAGES.H)
 AM_INIT_AUTOMAKE(tar-ustar)
@@ -62,6 +62,19 @@ if test x$pyext == xtrue; then
   AX_SWIG_PYTHON
 fi
 AM_CONDITIONAL(ENABLE_PYEXT, [test x$pyext == xtrue])
+
+AC_ARG_ENABLE(ufo,
+  AC_HELP_STRING([--enable-ufo], [Enable UFO support]),
+  [ AC_MSG_CHECKING(for UFO support)
+    case "${enableval}" in
+      no) AC_MSG_RESULT(no); ufo=false ;;
+      yes)  AC_MSG_RESULT(yes); ufo=true ;;
+    esac ],
+  [ AC_MSG_CHECKING(for UFO support); AC_MSG_RESULT(no); ufo=false])
+if test x$ufo == xtrue; then
+  AM_PATH_PYTHON
+fi
+AM_CONDITIONAL(ENABLE_UFO, [test x$ufo == xtrue])
 
 case "$build_os:$build_cpu:$build_vendor" in
   *darwin*:*:*) ;;

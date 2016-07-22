@@ -71,7 +71,7 @@ Sherpa::~Sherpa()
 
 bool Sherpa::InitializeTheRun(int argc,char * argv[]) 
 { 
-  m_path = std::string("./");
+  m_path = std::string("");
   int oldc(argc);
   char **oldargs(NULL);
   std::string statuspath;
@@ -165,7 +165,8 @@ bool Sherpa::InitializeTheEventHandler()
     p_eventhandler->AddEventPhase(new Beam_Remnants(p_inithandler->GetBeamRemnantHandler()));
   }
   else {
-    p_eventhandler->AddEventPhase(new Signal_Processes(p_inithandler->GetMatrixElementHandler()));
+    p_eventhandler->AddEventPhase(new Signal_Processes(p_inithandler->GetMatrixElementHandler(),
+                                                       p_inithandler->GetVariations()));
     p_eventhandler->AddEventPhase(new Hard_Decays(p_inithandler->GetHardDecayHandler()));
     p_eventhandler->AddEventPhase(new Jet_Evolution(p_inithandler->GetMatrixElementHandler(),
                                                     p_inithandler->GetHardDecayHandler(),
@@ -314,10 +315,11 @@ void Sherpa::PrepareTerminate()
 bool Sherpa::SummarizeRun() 
 {
   if (p_eventhandler) {
-    msg_Info()<<"  Event "<<rpa->gen.NumberOfEvents()<<" ( "
+    msg_Info()<<"  Event "<<rpa->gen.NumberOfGeneratedEvents()<<" ( "
               <<size_t(rpa->gen.Timer().RealTime()-m_evt_starttime)
               <<" s total ) = "
-              << rpa->gen.NumberOfEvents()*3600*24/((size_t) rpa->gen.Timer().RealTime()-m_evt_starttime)
+              << rpa->gen.NumberOfGeneratedEvents()*3600*24/
+                 ((size_t) rpa->gen.Timer().RealTime()-m_evt_starttime)
               <<" evts/day                    "<<std::endl;
   }
   p_eventhandler->Finish(); 
@@ -374,9 +376,9 @@ void Sherpa::DrawLogo(const int mode)
 	    <<std::endl
 	    <<"     SHERPA version "<<SHERPA_VERSION<<"."<<SHERPA_SUBVERSION<<" ("<<SHERPA_NAME<<")"<<std::endl
 	    <<"                                                                             "<<std::endl
-	    <<"     Authors:        Stefan Hoeche, Frank Krauss, Silvan Kuttimalai,         "<<std::endl
-	    <<"                     Marek Schoenherr, Holger Schulz, Steffen Schumann,      "<<std::endl
-	    <<"                     Frank Siegert, Korinna Zapp."<<std::endl
+	    <<"     Authors:        Enrico Bothmann, Stefan Hoeche, Frank Krauss,           "<<std::endl
+	    <<"                     Silvan Kuttimalai, Marek Schoenherr, Holger Schulz,     "<<std::endl
+	    <<"                     Steffen Schumann, Frank Siegert, Korinna Zapp           "<<std::endl
 	    <<"     Former Authors: Timo Fischer, Tanju Gleisberg, Hendrik Hoeth,           "<<std::endl
 	    <<"                     Ralf Kuhn, Thomas Laubrich, Andreas Schaelicke,         "<<std::endl
 	    <<"                     Jan Winter                                              "<<std::endl
