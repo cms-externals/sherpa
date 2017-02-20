@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("PDF/Electron","branches/rel-2-2-1","28647","5e2dc76efa91a270d2fc18d4e9404193");
+("PDF/Electron","branches/rel-2-2-2","29489","5e2dc76efa91a270d2fc18d4e9404193");

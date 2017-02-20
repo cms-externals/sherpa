@@ -19,6 +19,12 @@
 #include "HepMC/SimpleVector.h"
 #include "HepMC/PdfInfo.h"
 #include "HepMC/WeightContainer.h"
+#ifdef USING__HEPMC2__DEFS
+#include "HepMC/HepMCDefs.h"
+#ifdef HEPMC_HAS_CROSS_SECTION
+#include "HepMC/GenCrossSection.h"
+#endif
+#endif
 #ifdef USING__HEPMC2__UNITS
 #include "HepMC/Units.h"
 #endif
@@ -620,12 +626,25 @@ bool HepMC2_Interface::Sherpa2HepMC(ATOOLS::Particle * parton,
       status=4;
     }
   }
+  if (parton->Status()==part_status::documentation) status=20;
   particle = new HepMC::GenParticle(momentum,(long int)parton->Flav(),status);
   for (int i=1;i<3;i++) {
     if (parton->GetFlow(i)>0) particle->set_flow(i,parton->GetFlow(i));
   }
   m_particle2genparticle.insert(std::make_pair(parton,particle));
   return true;
+}
+
+bool HepMC2_Interface::AddCrossSection(HepMC::GenEvent& event,
+                                       const double &xs, const double &err)
+{
+#ifdef HEPMC_HAS_CROSS_SECTION
+  HepMC::GenCrossSection gxs;
+  gxs.set_cross_section(xs,err);
+  event.set_cross_section(gxs);
+#else
+  msg_Info()<<METHOD<<"(): Cannot add XS info to GenEvent."<<std::endl;
+#endif
 }
 
 void HepMC2_Interface::DeleteGenSubEventList()
