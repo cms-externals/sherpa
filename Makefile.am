@@ -19,9 +19,7 @@ SUBDIRS       = \
 		PHOTONS++ \
 		SHRiMPS \
 		SHERPA \
-		AddOns \
-		Manual \
-		Examples
+		AddOns
 
 EXTRA_DIST = GUIDELINES
 
