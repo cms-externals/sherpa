@@ -25,9 +25,9 @@ if test -z "$2"; then
 echo "import os
 vars = Variables()
 vars.Add(PathVariable('libdir','lib path',os.getcwd()+'/Process/Amegic/lib',PathVariable.PathIsDirCreate))
-vars.Add('CXX','The C++ Compiler','mpic++ -Wl,--no-as-needed')
-vars.Add('CXXFLAGS','The C++ Flags',['-g -O2'.split(" "),''.split(" "),'-g0','-O2'])
-vars.Add(PathVariable('incdir','include path','/home/hschulz/Sherpa/rel-2-2-1.svn/local/include/SHERPA-MC',PathVariable.PathIsDir))
+vars.Add('CXX','The C++ Compiler','g++ -Wl,--no-as-needed')
+vars.Add('CXXFLAGS','The C++ Flags',['-g -O2'.split(" "),'-std=c++11'.split(" "),'-g0','-O2'])
+vars.Add(PathVariable('incdir','include path','/mt/hepsw/sherpa-frombot/branches/rel-2-2-2/29489/include/SHERPA-MC',PathVariable.PathIsDir))
 env = Environment(variables=vars,CPPPATH=['\${incdir}'])
 env['ENV']=os.environ
 if env['PLATFORM']=='darwin':

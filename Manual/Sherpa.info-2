@@ -1,8 +1,7 @@
-This is Sherpa.info, produced by makeinfo version 6.1 from Sherpa.texi.
+This is Sherpa.info, produced by makeinfo version 5.1 from Sherpa.texi.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License.
-
 
 
 File: Sherpa.info,  Node: Tops plus W in MC@NLO,  Prev: Top quark pair production,  Up: TopsJets
@@ -930,12 +929,19 @@ chain.
        % collider setup
        BEAM_1  11; BEAM_ENERGY_1 7.;
        BEAM_2 -11; BEAM_ENERGY_2 4.;
+     #  ANALYSIS=Rivet
      }(run)
 
      (processes){
        Process 11 -11 -> 13 -13;
        End process;
      }(processes)
+
+     #(analysis){
+     #  BEGIN_RIVET {
+     #  -a BELLE_2015_I1397632
+     #  } END_RIVET
+     #}(analysis)
 
 Things to notice:
    * 'EVENT_TYPE' is set to 'HadronDecay'.
