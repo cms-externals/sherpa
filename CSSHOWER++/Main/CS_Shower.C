@@ -110,6 +110,8 @@ int CS_Shower::PerformShowers(const size_t &maxem,size_t &nem)
 	  else d[j]->SetRight(d[1-j]);
 	}
       }
+      for (Singlet::iterator it((*sit)->begin());it!=(*sit)->end();++it)
+	if (*it!=d[0] && *it!=d[1]) (*it)->SetStart(0.0);
     }
     msg_Debugging()<<**sit;
     size_t pem(nem);
@@ -305,6 +307,7 @@ bool CS_Shower::PrepareStandardShower(Cluster_Amplitude *const ampl)
       Parton *k(pmap[cl]);
       k->SetId(cl->Id());
       k->SetStat(cl->Stat());
+      k->SetFromDec(cl->FromDec());
       almap[apmap[cl]=k]=cl;
       std::map<size_t,Parton*>::iterator cit(kmap.find(cl->Id()));
       if (cit!=kmap.end()) {

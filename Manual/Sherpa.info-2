@@ -1,7 +1,8 @@
-This is Sherpa.info, produced by makeinfo version 5.1 from Sherpa.texi.
+This is Sherpa.info, produced by makeinfo version 6.4 from Sherpa.texi.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License.
+
 
 
 File: Sherpa.info,  Node: Tops plus W in MC@NLO,  Prev: Top quark pair production,  Up: TopsJets
@@ -12,33 +13,33 @@ File: Sherpa.info,  Node: Tops plus W in MC@NLO,  Prev: Top quark pair productio
      (run){
        % general settings
        EVENTS 10000;
-
+     
        % tags and settings for scale definitions
        FSF:=1.0; RSF:=1.0; QSF:=1.0;
        SCALES STRICT_METS{FSF*MU_F2}{RSF*MU_R2}{QSF*MU_Q2};
-
+     
        % tags and settings for ME generators
        LGEN:=OpenLoops;
        ME_SIGNAL_GENERATOR Comix Amegic LGEN;
        EVENT_GENERATION_MODE Weighted;
-
+     
        % settings for hard decays
        HARD_DECAYS On;
        HDH_STATUS[24,2,-1]=0;
        HDH_STATUS[24,4,-3]=0;
        HDH_STATUS[24,16,-15]=0;
-
+     
        % model parameters
        WIDTH[6] 0; WIDTH[24] 0;
-
+     
        % technical parameters
        EXCLUSIVE_CLUSTER_MODE 1;
-
+     
        % collider setup
        BEAM_1 2212; BEAM_ENERGY_1 4000;
        BEAM_2 2212; BEAM_ENERGY_2 4000;
      }(run);
-
+     
      (processes){
        Process 93 93 -> 6 -6 24;
        NLO_QCD_Mode MC@NLO;
@@ -83,31 +84,31 @@ File: Sherpa.info,  Node: Dilepton missing energy and jets production,  Next: Di
      (run){
        % general settings
        EVENTS 1M;
-
+     
        % scales, tags for scale variations
        FSF:=1.; RSF:=1.; QSF:=1.;
        SCALES METS{FSF*MU_F2}{RSF*MU_R2}{QSF*MU_Q2};
-
+     
        % tags for process setup
        NJET:=3; LJET:=4,5; QCUT:=30.;
-
+     
        % me generator settings
        ME_SIGNAL_GENERATOR Comix Amegic LOOPGEN;
        EVENT_GENERATION_MODE Weighted;
        LOOPGEN:=OpenLoops;
        EXCLUSIVE_CLUSTER_MODE 1;
        METS_CLUSTER_MODE 16;
-
+     
        % define parton container without b-quarks to
        % remove any processes with top contributions
        PARTICLE_CONTAINER 901 lightflavs 1 -1 2 -2 3 -3 4 -4 21;
        NLO_CSS_DISALLOW_FLAVOUR 5;
-
+     
        % collider setup
        BEAM_1 2212; BEAM_ENERGY_1 6500.;
        BEAM_2 2212; BEAM_ENERGY_2 6500.;
      }(run)
-
+     
      (processes){
        Process 901 901 -> 90 91 90 91 901{NJET};
        Order (*,4); CKKW sqr(QCUT/E_CMS);
@@ -118,7 +119,7 @@ File: Sherpa.info,  Node: Dilepton missing energy and jets production,  Next: Di
        Integration_Error 0.05 {5,6,7,8};
        End process;
      }(processes)
-
+     
      (selector){
        "PT" 90 5.0,E_CMS:5.0,E_CMS [PT_UP]
        Mass 11 -11 10.0 E_CMS
@@ -137,16 +138,16 @@ File: Sherpa.info,  Node: Dilepton missing energy and jets production (gluon ini
      (run){
        % general settings
        EVENTS 1M;
-
+     
        % scales, tags for scale variations
        FSF:=1.; RSF:=1.; QSF:=1.;
        SCALES STRICT_METS{FSF*MU_F2}{RSF*MU_R2}{QSF*MU_Q2};
        CORE_SCALE VAR{Abs2(p[2]+p[3]+p[4]+p[5])/4.0};
        EXCLUSIVE_CLUSTER_MODE 1;
-
+     
        % tags for process setup
        NJET:=1; QCUT:=20;
-
+     
        % me generator settings
        ME_SIGNAL_GENERATOR Amegic LOOPGEN;
        EVENT_GENERATION_MODE Weighted;
@@ -156,13 +157,13 @@ File: Sherpa.info,  Node: Dilepton missing energy and jets production (gluon ini
        % corresponding qq->llvv setup (RUNDATA=Run.tree.dat) first;
        % they will appear in Process/Amegic/lib/libProc_fsrchannels*.so
        SHERPA_LDADD Proc_fsrchannels4 Proc_fsrchannels5;
-
+     
        % collider setup
        BEAM_1 2212; BEAM_ENERGY_1 6500.;
        BEAM_2 2212; BEAM_ENERGY_2 6500.;
      }(run)
-
-
+     
+     
      (processes){
        Process 93 93 -> 90 90 91 91 93{1};
        CKKW sqr(QCUT/E_CMS);
@@ -175,7 +176,7 @@ File: Sherpa.info,  Node: Dilepton missing energy and jets production (gluon ini
        Integration_Error 0.02 {5};
        End process;
      }(processes)
-
+     
      (selector){
        Mass 11 -11 10.0 E_CMS;
        Mass 13 -13 10.0 E_CMS;
@@ -193,26 +194,26 @@ File: Sherpa.info,  Node: Four lepton and jets production,  Next: Four lepton an
      (run){
        % general settings
        EVENTS 1M;
-
+     
        % scales, tags for scale variations
        FSF:=1.; RSF:=1.; QSF:=1.;
        SCALES METS{FSF*MU_F2}{RSF*MU_R2}{QSF*MU_Q2};
-
+     
        % tags for process setup
        NJET:=3; LJET:=4,5; QCUT:=30.;
-
+     
        % me generator settings
        ME_SIGNAL_GENERATOR Comix Amegic LOOPGEN;
        EVENT_GENERATION_MODE Weighted;
        LOOPGEN:=OpenLoops;
        EXCLUSIVE_CLUSTER_MODE 1;
        METS_CLUSTER_MODE 16;
-
+     
        % collider setup
        BEAM_1 2212; BEAM_ENERGY_1 6500.;
        BEAM_2 2212; BEAM_ENERGY_2 6500.;
      }(run)
-
+     
      (processes){
        Process 93 93 -> 90 90 90 90 93{NJET};
        Order (*,4); CKKW sqr(QCUT/E_CMS);
@@ -223,7 +224,7 @@ File: Sherpa.info,  Node: Four lepton and jets production,  Next: Four lepton an
        Integration_Error 0.05 {5,6,7,8};
        End process;
      }(processes)
-
+     
      (selector){
        "PT" 90 5.0,E_CMS:5.0,E_CMS [PT_UP]
        Mass 11 -11 10.0 E_CMS
@@ -242,16 +243,16 @@ File: Sherpa.info,  Node: Four lepton and jets production (gluon initiated),  Ne
      (run){
        % general settings
        EVENTS 1M;
-
+     
        % scales, tags for scale variations
        FSF:=1.; RSF:=1.; QSF:=1.;
        SCALES STRICT_METS{FSF*MU_F2}{RSF*MU_R2}{QSF*MU_Q2};
        CORE_SCALE VAR{Abs2(p[2]+p[3]+p[4]+p[5])/4.0};
        EXCLUSIVE_CLUSTER_MODE 1;
-
+     
        % tags for process setup
        NJET:=1; QCUT:=20;
-
+     
        % me generator settings
        ME_SIGNAL_GENERATOR Amegic LOOPGEN;
        EVENT_GENERATION_MODE Weighted;
@@ -261,13 +262,13 @@ File: Sherpa.info,  Node: Four lepton and jets production (gluon initiated),  Ne
        % corresponding qq->llll setup (RUNDATA=Run.tree.dat) first;
        % they will appear in Process/Amegic/lib/libProc_fsrchannels*.so
        SHERPA_LDADD Proc_fsrchannels4 Proc_fsrchannels5;
-
+     
        % collider setup
        BEAM_1 2212; BEAM_ENERGY_1 6500.;
        BEAM_2 2212; BEAM_ENERGY_2 6500.;
      }(run)
-
-
+     
+     
      (processes){
        Process 93 93 -> 90 90 90 90 93{1};
        CKKW sqr(QCUT/E_CMS);
@@ -280,7 +281,7 @@ File: Sherpa.info,  Node: Four lepton and jets production (gluon initiated),  Ne
        Integration_Error 0.02 {5};
        End process;
      }(processes)
-
+     
      (selector){
        Mass 11 -11 10.0 E_CMS;
        Mass 13 -13 10.0 E_CMS;
@@ -298,21 +299,21 @@ File: Sherpa.info,  Node: WZ production with jets production,  Next: Same sign d
      (run){
        % general settings
        EVENTS 1M;
-
+     
        % scales, tags for scale variations
        FSF:=1.; RSF:=1.; QSF:=1.;
        SCALES METS{FSF*MU_F2}{RSF*MU_R2}{QSF*MU_Q2};
        CORE_SCALE VAR{Abs2(p[2]+p[3])/4.0};
        EXCLUSIVE_CLUSTER_MODE 1;
-
+     
        % tags for process setup
        NJET:=3; LJET:=2,3; QCUT:=30.;
-
+     
        % me generator settings
        ME_SIGNAL_GENERATOR Comix Amegic LOOPGEN;
        EVENT_GENERATION_MODE Weighted;
        LOOPGEN:=OpenLoops;
-
+     
        % decay setup
        HARD_DECAYS On;
        WIDTH[23] 0; WIDTH[24] 0;
@@ -323,12 +324,12 @@ File: Sherpa.info,  Node: WZ production with jets production,  Next: Same sign d
        HDH_STATUS[23,12,-12] 2;
        HDH_STATUS[23,14,-14] 2;
        HDH_STATUS[23,16,-16] 2;
-
+     
        % collider setup
        BEAM_1 2212; BEAM_ENERGY_1 6500.;
        BEAM_2 2212; BEAM_ENERGY_2 6500.;
      }(run)
-
+     
      (processes){
        Process 93 93 -> 24 23 93{NJET};
        Order (*,2); CKKW sqr(QCUT/E_CMS);
@@ -338,7 +339,7 @@ File: Sherpa.info,  Node: WZ production with jets production,  Next: Same sign d
        Loop_Generator LOOPGEN {LJET};
        Integration_Error 0.05 {3,4,5,6,7};
        End process;
-
+     
        Process 93 93 -> -24 23 93{NJET};
        Order (*,2); CKKW sqr(QCUT/E_CMS);
        NLO_QCD_Mode MC@NLO {LJET};
@@ -360,94 +361,94 @@ File: Sherpa.info,  Node: Same sign dilepton missing energy and jets production,
      (run){
        % general settings
        EVENTS 1M;
-
+     
        % choose EW Gmu input scheme
        EW_SCHEME 3;
-
+     
        % tags for process setup
        NJET:=1; QCUT:=30.;
-
+     
        %scales, tags for scale variations
        FSF:=1.0; RSF:=1.0; QSF:=1.0;
        SCALES=STRICT_METS{FSF*MU_F2}{RSF*MU_R2}{QSF*MU_Q2};
        CORE_SCALE=VAR{Abs2(p[2]+p[3]+p[4]+p[5])};
        EXCLUSIVE_CLUSTER_MODE 1;
-
+     
        %solves problem with dipole QED modeling
        ME_QED_CLUSTERING_THRESHOLD 10;
-
+     
        % improve integration performance
        PSI_ITMIN 25000;
        INTEGRATION_ERROR 0.05;
-
+     
        % collider setup
        BEAM_1 2212; BEAM_ENERGY_1 6500.;
        BEAM_2 2212; BEAM_ENERGY_2 6500.;
      }(run)
-
-
+     
+     
      (processes){
        Process 93 93 -> 11 11 -12 -12 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> 13 13 -14 -14 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> 15 15 -16 -16 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> 11 13 -12 -14 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> 11 15 -12 -16 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> 13 15 -14 -16 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> -11 -11 12 12 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> -13 -13 14 14 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> -15 -15 16 16 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> -11 -13 12 14 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> -11 -15 12 16 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
-
+     
        Process 93 93 -> -13 -15 14 16 93 93 93{NJET};
        Order (*,6);
        CKKW sqr(QCUT/E_CMS);
        End process;
      }(processes)
-
+     
      (selector){
        PT 90 5.0 E_CMS;
        NJetFinder 2 15. 0. 0.4 -1;
@@ -504,14 +505,14 @@ collaborations at the HERA collider at DESY Hamburg.
        RESPECT_MASSIVE_FLAG 1;
        CSS_KIN_SCHEME 1;
        # collider setup
-       BEAM_1 -11 27.5; BEAM_2 2212 820;
+       BEAM_1 -11 27.5; BEAM_2 2212 820; 
        PDF_SET_1 None;
        # hadronization tune
        PARJ(21) 0.432; PARJ(41) 1.05; PARJ(42) 1.0;
        PARJ(47) 0.65; MSTJ(11) 5;
-       FRAGMENTATION Lund; DECAYMODEL Lund;
+       FRAGMENTATION Lund; DECAYMODEL Lund; 
      }(run);
-
+     
      (processes){
        Process -11 93 -> -11 93 93{NJET};
        CKKW sqr(QCUT/E_CMS)/(1.0+sqr(QCUT/SDIS)/Abs2(p[2]-p[0]));
@@ -524,7 +525,7 @@ collaborations at the HERA collider at DESY Hamburg.
        Integration_Error 0.03 {3};
        End process;
      }(processes);
-
+     
      (selector){
        Q2 -11 -11 4 1e12;
      }(selector)
@@ -590,7 +591,7 @@ are applied at generation level.
        ANALYSIS Rivet; ANALYSIS_OUTPUT Analysis/HTp/BVI/;
        ### NTuple output (please configure with '--enable-root')
        EVENT_OUTPUT Root[NTuple_B-like];
-
+     
        BEAM_1 2212; BEAM_ENERGY_1 3500;
        BEAM_2 2212; BEAM_ENERGY_2 3500;
        SCF:=1; ### default scale factor
@@ -623,7 +624,7 @@ are applied at generation level.
      (selector){
        FastjetFinder antikt 1 20 0 0.4;
      }(selector);
-
+     
      (analysis){
        BEGIN_RIVET {
          -a ATLAS_2012_I1083318;
@@ -709,10 +710,10 @@ File: Sherpa.info,  Node: Calculation of inclusive cross sections,  Next: Simula
 
      (run){
        OUTPUT              = 2
-       EVENT_TYPE          = MinimumBias
+       EVENT_TYPE          = MinimumBias 
        SOFT_COLLISIONS     = Shrimps
        Shrimps_Mode        = Xsecs
-
+     
        deltaY    =  1.5;
        Lambda2   =  1.7;
        beta_0^2  =  20.0;
@@ -721,16 +722,16 @@ File: Sherpa.info,  Node: Calculation of inclusive cross sections,  Next: Simula
        lambda    =  0.3;
        Delta     =  0.4;
      }(run)
-
+     
      (beam){
        BEAM_1 =  2212; BEAM_ENERGY_1 = 450.;
        BEAM_2 =  2212; BEAM_ENERGY_2 = 450.;
      }(beam)
-
+     
      (me){
        ME_SIGNAL_GENERATOR = None
      }(me)
-
+     
 
 Things to notice:
    * Inclusive cross sections (total, inelastic, low-mass
@@ -752,19 +753,19 @@ File: Sherpa.info,  Node: Simulation of Minimum Bias events,  Prev: Calculation 
      (run){
        EVENTS              = 50k
        OUTPUT              = 2
-       EVENT_TYPE          = MinimumBias
+       EVENT_TYPE          = MinimumBias 
        SOFT_COLLISIONS     = Shrimps
-       Shrimps_Mode        = Inelastic
-
+       Shrimps_Mode        = Inelastic 
+     
        ANALYSIS            = Rivet
-
+     
        ANALYSIS_OUTPUT     = test6
-
+     
        ALPHAS(MZ) 0.118;
        ORDER_ALPHAS 1;
        CSS_FS_PT2MIN       1.00
        MAX_PROPER_LIFETIME = 10.
-
+     
        deltaY    =  1.5;
        Lambda2   =  1.376;
        beta_0^2  =  18.76;
@@ -772,7 +773,7 @@ File: Sherpa.info,  Node: Simulation of Minimum Bias events,  Prev: Calculation 
        xi        =  0.2;
        lambda    =  0.2151;
        Delta     =  0.3052;
-
+     
        Q_0^2           = 2.25;
        Chi_S           = 1.0;
        Shower_Min_KT2  = 4.0;
@@ -783,26 +784,26 @@ File: Sherpa.info,  Node: Simulation of Minimum Bias events,  Prev: Calculation 
        Q_RC^2          = 0.9;
        ReconnProb      = -25.;
        Resc_KTMin      = off;
-
+     
        Misha           = 0
      }(run)
-
+     
      (beam){
        BEAM_1 =  2212; BEAM_ENERGY_1 = 3500.;
        BEAM_2 =  2212; BEAM_ENERGY_2 = 3500.;
      }(beam)
-
+     
      (analysis){
        BEGIN_RIVET {
        -a ATLAS_2010_S8918562 ATLAS_2010_S8894728 ATLAS_2011_S8994773 ATLAS_2012_I1084540 TOTEM_2012_DNDETA ATLAS_2011_I919017 CMS_2011_S8978280 CMS_2011_S9120041 CMS_2011_S9215166 CMS_2010_S8656010 CMS_2011_S8884919 CMS_QCD_10_024
        } END_RIVET
      }(analysis)
-
+     
      (me){
        ME_SIGNAL_GENERATOR = None
      }(me)
-
-
+     
+     
 
 Things to notice:
    * The SHRiMPS model is not properly tuned yet - all parameters are
@@ -844,7 +845,7 @@ Please note, it does not include any hadronic resonance.
        BEAM_1  11; BEAM_ENERGY_1 7.;
        BEAM_2 -11; BEAM_ENERGY_2 4.;
      }(run)
-
+     
      (processes){
        Process 11 -11 -> 93 93;
        Order (*,2);
@@ -885,7 +886,7 @@ Example setup for B-hadron pair production on the Y(4S) pole.
        BEAM_1  11; BEAM_ENERGY_1 7.;
        BEAM_2 -11; BEAM_ENERGY_2 4.;
      }(run)
-
+     
      (processes){
        #
        # electron positron -> Y(4S) -> B+ B-
@@ -918,10 +919,10 @@ chain.
        % general settings
        EVENTS 5M;
        EVENT_TYPE HadronDecay;
-
+     
        % specify hadron to be decayed
        DECAYER 511;
-
+     
        % initialise rest for Sherpa not to complain
        % model parameters
        ME_SIGNAL_GENERATORS Internal;
@@ -931,12 +932,12 @@ chain.
        BEAM_2 -11; BEAM_ENERGY_2 4.;
      #  ANALYSIS=Rivet
      }(run)
-
+     
      (processes){
        Process 11 -11 -> 13 -13;
        End process;
      }(processes)
-
+     
      #(analysis){
      #  BEGIN_RIVET {
      #  -a BELLE_2015_I1397632
@@ -987,22 +988,22 @@ again in order to obtain the matrix element.
      import sys
      sys.path.append('@PYLIBDIR@')
      import Sherpa
-
+     
      # Add this to the execution arguments to prevent Sherpa from starting the cross section integration
      sys.argv.append('INIT_ONLY=2')
-
+     
      Generator=Sherpa.Sherpa()
      try:
          Generator.InitializeTheRun(len(sys.argv),sys.argv)
          Process=Sherpa.MEProcess(Generator)
-
+     
          # Incoming flavors must be added first!
          Process.AddInFlav(11);
          Process.AddInFlav(-11);
          Process.AddOutFlav(1);
          Process.AddOutFlav(-1);
          Process.Initialize();
-
+     
          # First argument corresponds to particle index:
          # index 0 correspons to particle added first, index 1 is the particle added second, and so on...
          Process.SetMomentum(0, 45.6,0.,0.,45.6)
@@ -1010,20 +1011,20 @@ again in order to obtain the matrix element.
          Process.SetMomentum(2, 45.6,0.,45.6,0.)
          Process.SetMomentum(3, 45.6,0.,-45.6,0.)
          print '\nSquared ME: ', Process.CSMatrixElement()
-
+     
          # Momentum setting via list of floats
          Process.SetMomenta([[45.6,0.,0.,45.6],
                              [45.6,0.,0.,-45.6],
                              [45.6,0.,45.6,0.],
                              [45.6,0.,-45.6,0.]])
          print '\nSquared ME: ', Process.CSMatrixElement()
-
+         
          # Random momenta
          E_cms = 500.0
          tp = Process.TestPoint(E_cms)
          print '\nRandom test point: ', tp[0], tp[1], tp[2], tp[3]
          print 'Squared ME: ', Process.CSMatrixElement(), '\n'
-
+     
      except Sherpa.Exception as exc:
          print exc
          exit(1)
@@ -1049,21 +1050,21 @@ giving both the process and the requested phase space points looks like
        EVENTS 0;
        INIT_ONLY 2;
      }(run)
-
+     
      (beam){
        BEAM_1  11; BEAM_ENERGY_1 45.6;
        BEAM_2 -11; BEAM_ENERGY_2 45.6;
      }(beam)
-
+     
      (isr){
        PDF_LIBRARY None;
      }(isr)
-
+     
      (processes){
        Process 11 -11 -> 2 -2 21 21 21 21
        End process;
      }(processes)
-
+     
      (momenta){
        NUMBER_OF_POINTS 4
        Point 1
@@ -1152,7 +1153,7 @@ basis for constructing interfaces to own analysis routines.
      import sys
      sys.path.append('@PYLIBDIR@')
      import Sherpa
-
+     
      Generator=Sherpa.Sherpa()
      try:
          Generator.InitializeTheRun(len(sys.argv),sys.argv)
@@ -1187,7 +1188,7 @@ basis for constructing interfaces to own analysis routines.
              print "} Event",n
              if ((n%100)==0): print "  Event ",n
          Generator.SummarizeRun()
-
+             
      except Sherpa.Exception as exc:
          exit(1)
 
@@ -1210,7 +1211,7 @@ to run this Example.  Sherpa must be configured and installed using
      sys.path.append('@PYLIBDIR@')
      import Sherpa
      import gzip
-
+     
      class MyParticle:
          def __init__(self,p):
              self.kfc=p.Flav().Kfcode()
@@ -1222,7 +1223,7 @@ to run this Example.  Sherpa must be configured and installed using
          def __str__(self):
              return (str(self.kfc)+" "+str(self.E)+" "
                      +str(self.px)+" "+str(self.py)+" "+str(self.pz))
-
+     
      Generator=Sherpa.Sherpa()
      try:
          Generator.InitializeTheRun(len(sys.argv),sys.argv)
@@ -1258,7 +1259,7 @@ to run this Example.  Sherpa must be configured and installed using
                  comm.send(trials,dest=0,tag=2*rank)
                  comm.send(parts,dest=0,tag=3*rank)
          Generator.SummarizeRun()
-
+     
      except Sherpa.Exception as exc:
          exit(1)
 
@@ -1682,7 +1683,7 @@ Appendix B Index
 * ANALYSIS_OUTPUT:                       ANALYSIS_OUTPUT.     (line   6)
 * ANALYSIS_OUTPUT <1>:                   Rivet analyses.      (line   6)
 * ANALYSIS_OUTPUT <2>:                   HZTool analyses.     (line   6)
-* BARYON_FRACTION:                       Fragmentation.       (line  75)
+* BARYON_FRACTION:                       Fragmentation.       (line  79)
 * BATCH_MODE:                            BATCH_MODE.          (line   6)
 * BEAM_1:                                Beam Parameters.     (line   6)
 * BEAM_2:                                Beam Parameters.     (line   6)
@@ -1728,7 +1729,7 @@ Appendix B Index
 * DEACTIVATE_PPH:                        HEFT.                (line   6)
 * DECAYMODEL:                            Hadron decays.       (line   6)
 * DECAYPATH:                             Hadron decays.       (line   6)
-* DECAY_OFFSET:                          Fragmentation.       (line  75)
+* DECAY_OFFSET:                          Fragmentation.       (line  79)
 * DECAY_RESULT_DIRECTORY:                DECAY_RESULT_DIRECTORY.
                                                               (line   6)
 * DECAY_TAU_HARD:                        DECAY_TAU_HARD.      (line   6)
@@ -1785,7 +1786,7 @@ Appendix B Index
 * HDH_SET_WIDTHS:                        HDH_SET_WIDTHS.      (line   6)
 * HDH_STATUS[<idcode>]:                  HDH_STATUS.          (line   6)
 * HDH_WIDTH[<idcode>]:                   HDH_WIDTH.           (line   6)
-* HEAVY_BARYON_ENHANCEMEMT:              Fragmentation.       (line  40)
+* HEAVY_BARYON_ENHANCEMEMT:              Fragmentation.       (line  44)
 * HEPEVT:                                Event output formats.
                                                               (line   6)
 * HepMC_GenEvent:                        Event output formats.
@@ -1834,7 +1835,7 @@ Appendix B Index
 * Loop_Generator:                        MCFM interface.      (line   6)
 * LOOP_ME_INIT:                          Enforcing the renormalization scheme.
                                                               (line   6)
-* MassExponent_C->HH:                    Fragmentation.       (line 110)
+* MassExponent_C->HH:                    Fragmentation.       (line 111)
 * MASSIVE[<id>]:                         SM.                  (line   6)
 * MASS[<id>]:                            SM.                  (line   6)
 * MASS[<id>] <1>:                        Hadron decays.       (line   6)
@@ -1845,8 +1846,8 @@ Appendix B Index
 * ME_QED_CLUSTERING_THRESHOLD:           ME_QED_CLUSTERING_THRESHOLD.
                                                               (line   6)
 * ME_SIGNAL_GENERATOR:                   ME_SIGNAL_GENERATOR. (line   6)
-* Mixing_0+:                             Fragmentation.       (line  40)
-* Mixing_1-:                             Fragmentation.       (line  40)
+* Mixing_0+:                             Fragmentation.       (line  44)
+* Mixing_1-:                             Fragmentation.       (line  44)
 * MI_HANDLER:                            MI_HANDLER.          (line   6)
 * MI_RESULT_DIRECTORY:                   MI_RESULT_DIRECTORY. (line   6)
 * MI_RESULT_DIRECTORY_SUFFIX:            MI_RESULT_DIRECTORY_SUFFIX.
@@ -1857,37 +1858,39 @@ Appendix B Index
 * MSTJ:                                  Fragmentation.       (line   9)
 * MSTP:                                  Fragmentation.       (line   9)
 * MSTU:                                  Fragmentation.       (line   9)
-* MULTI_WEIGHT_L0R0_DELTA_3/2:           Fragmentation.       (line  40)
-* MULTI_WEIGHT_L0R0_N*_1/2:              Fragmentation.       (line  40)
-* MULTI_WEIGHT_L0R0_N_1/2:               Fragmentation.       (line  40)
-* MULTI_WEIGHT_L0R0_PSEUDOSCALARS:       Fragmentation.       (line  40)
-* MULTI_WEIGHT_L0R0_TENSORS2:            Fragmentation.       (line  40)
-* MULTI_WEIGHT_L0R0_TENSORS3:            Fragmentation.       (line  40)
-* MULTI_WEIGHT_L0R0_TENSORS4:            Fragmentation.       (line  40)
-* MULTI_WEIGHT_L0R0_VECTORS:             Fragmentation.       (line  40)
-* MULTI_WEIGHT_L0R1_AXIALVECTORS:        Fragmentation.       (line  40)
-* MULTI_WEIGHT_L0R1_SCALARS:             Fragmentation.       (line  40)
-* MULTI_WEIGHT_L1R0_AXIALVECTORS:        Fragmentation.       (line  40)
-* MULTI_WEIGHT_L1R0_DELTA*_3/2:          Fragmentation.       (line  40)
-* MULTI_WEIGHT_L1R0_N*_1/2:              Fragmentation.       (line  40)
-* MULTI_WEIGHT_L1R0_N*_3/2:              Fragmentation.       (line  40)
-* MULTI_WEIGHT_L1R0_SCALARS:             Fragmentation.       (line  40)
-* MULTI_WEIGHT_L1R0_TENSORS2:            Fragmentation.       (line  40)
-* MULTI_WEIGHT_L2R0_VECTORS:             Fragmentation.       (line  40)
-* MULTI_WEIGHT_L3R0_VECTORS:             Fragmentation.       (line  40)
-* M_BIND_0:                              Fragmentation.       (line  26)
-* M_BIND_1:                              Fragmentation.       (line  26)
-* M_BOTTOM:                              Fragmentation.       (line  26)
-* M_CHARM:                               Fragmentation.       (line  26)
-* M_DIQUARK_OFFSET:                      Fragmentation.       (line  26)
-* M_STRANGE:                             Fragmentation.       (line  26)
-* M_UP_DOWN:                             Fragmentation.       (line  26)
+* MULTI_WEIGHT_L0R0_DELTA_3/2:           Fragmentation.       (line  44)
+* MULTI_WEIGHT_L0R0_N*_1/2:              Fragmentation.       (line  44)
+* MULTI_WEIGHT_L0R0_N_1/2:               Fragmentation.       (line  44)
+* MULTI_WEIGHT_L0R0_PSEUDOSCALARS:       Fragmentation.       (line  44)
+* MULTI_WEIGHT_L0R0_TENSORS2:            Fragmentation.       (line  44)
+* MULTI_WEIGHT_L0R0_TENSORS3:            Fragmentation.       (line  44)
+* MULTI_WEIGHT_L0R0_TENSORS4:            Fragmentation.       (line  44)
+* MULTI_WEIGHT_L0R0_VECTORS:             Fragmentation.       (line  44)
+* MULTI_WEIGHT_L0R1_AXIALVECTORS:        Fragmentation.       (line  44)
+* MULTI_WEIGHT_L0R1_SCALARS:             Fragmentation.       (line  44)
+* MULTI_WEIGHT_L1R0_AXIALVECTORS:        Fragmentation.       (line  44)
+* MULTI_WEIGHT_L1R0_DELTA*_3/2:          Fragmentation.       (line  44)
+* MULTI_WEIGHT_L1R0_N*_1/2:              Fragmentation.       (line  44)
+* MULTI_WEIGHT_L1R0_N*_3/2:              Fragmentation.       (line  44)
+* MULTI_WEIGHT_L1R0_SCALARS:             Fragmentation.       (line  44)
+* MULTI_WEIGHT_L1R0_TENSORS2:            Fragmentation.       (line  44)
+* MULTI_WEIGHT_L2R0_VECTORS:             Fragmentation.       (line  44)
+* MULTI_WEIGHT_L3R0_VECTORS:             Fragmentation.       (line  44)
+* M_BIND_0:                              Fragmentation.       (line  30)
+* M_BIND_1:                              Fragmentation.       (line  30)
+* M_BOTTOM:                              Fragmentation.       (line  30)
+* M_CHARM:                               Fragmentation.       (line  30)
+* M_DIQUARK_OFFSET:                      Fragmentation.       (line  30)
+* M_STRANGE:                             Fragmentation.       (line  30)
+* M_UP_DOWN:                             Fragmentation.       (line  30)
 * NUMBER_OF_POINTS:                      Matrix Element values through C++ interface.
                                                               (line   6)
 * NUM_ACCURACY:                          NUM_ACCURACY.        (line   6)
 * ORDER_ALPHAS:                          SM.                  (line   6)
 * OUTPUT:                                OUTPUT.              (line   6)
 * OUTPUT_PRECISION:                      Event output formats.
+                                                              (line   6)
+* OVERWEIGHT_THRESHOLD:                  EVENT_GENERATION_MODE.
                                                               (line   6)
 * PARJ:                                  Fragmentation.       (line   9)
 * PARP:                                  Fragmentation.       (line   9)
@@ -1908,15 +1911,15 @@ Appendix B Index
 * PSI_ITMIN:                             PSI_ITMIN.           (line   6)
 * PSI_ITMIN_BY_NODE:                     PSI_ITMIN_BY_NODE.   (line   6)
 * PSI_NMAX:                              PSI_NMAX.            (line   6)
-* PT^2_0:                                Fragmentation.       (line 126)
-* PT_MAX:                                Fragmentation.       (line 126)
+* PT^2_0:                                Fragmentation.       (line 127)
+* PT_MAX:                                Fragmentation.       (line 127)
 * P_LASER_:                              Beam Spectra.        (line  49)
 * P_LASER_ <1>:                          Beam Spectra.        (line  49)
-* P_{QQ_1}/P_{QQ_0}:                     Fragmentation.       (line  75)
-* P_{QS}/P_{QQ}:                         Fragmentation.       (line  75)
-* P_{SS}/P_{QQ}:                         Fragmentation.       (line  75)
+* P_{QQ_1}/P_{QQ_0}:                     Fragmentation.       (line  79)
+* P_{QS}/P_{QQ}:                         Fragmentation.       (line  79)
+* P_{SS}/P_{QQ}:                         Fragmentation.       (line  79)
 * Q_0^2:                                 Minimum Bias.        (line 143)
-* Q_as^2:                                Fragmentation.       (line 126)
+* Q_as^2:                                Fragmentation.       (line 127)
 * Q_as^2 <1>:                            Minimum Bias.        (line 143)
 * Q_RC^2:                                Minimum Bias.        (line 143)
 * RANDOM_SEED:                           RANDOM_SEED.         (line   6)
@@ -1946,7 +1949,7 @@ Appendix B Index
 * Shrimps_Mode:                          Minimum Bias.        (line  97)
 * SIGMA_ND_FACTOR:                       SIGMA_ND_FACTOR.     (line   6)
 * SIN2THETAW:                            SM.                  (line   6)
-* SINGLET_SUPPRESSION:                   Fragmentation.       (line  40)
+* SINGLET_SUPPRESSION:                   Fragmentation.       (line  44)
 * SOFT_COLLISIONS:                       Minimum Bias.        (line  90)
 * SOFT_MASS_SMEARING:                    Hadron decays.       (line   6)
 * SOFT_SPIN_CORRELATIONS:                Hadron decays.       (line 214)
@@ -1956,9 +1959,9 @@ Appendix B Index
 * STABLE[<id>] <1>:                      Hard decays.         (line   6)
 * STABLE[<id>] <2>:                      Hadron decays.       (line   6)
 * STORE_DECAY_RESULTS:                   STORE_DECAY_RESULTS. (line   6)
-* STRANGE_FRACTION:                      Fragmentation.       (line  75)
+* STRANGE_FRACTION:                      Fragmentation.       (line  79)
 * TIMEOUT:                               TIMEOUT.             (line   6)
-* TRANSITION_OFFSET:                     Fragmentation.       (line  75)
+* TRANSITION_OFFSET:                     Fragmentation.       (line  79)
 * TUNE:                                  TUNE.                (line   6)
 * TURNOFF:                               TURNOFF.             (line   6)
 * TURNOFF_EXPONENT:                      TURNOFF_EXPONENT.    (line   6)

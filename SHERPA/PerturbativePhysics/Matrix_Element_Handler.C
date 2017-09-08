@@ -8,6 +8,7 @@
 #include "ATOOLS/Org/Data_Reader.H"
 #include "ATOOLS/Org/MyStrStream.H"
 #include "ATOOLS/Org/Shell_Tools.H"
+#include "ATOOLS/Org/Return_Value.H"
 #include "SHERPA/PerturbativePhysics/Shower_Handler.H"
 #include "SHERPA/Tools/Variations.H"
 #include "ATOOLS/Org/CXXFLAGS.H"
@@ -57,7 +58,7 @@ Matrix_Element_Handler::Matrix_Element_Handler
   else m_eventmode=0;
   //need for LHE-output
   rpa->gen.SetVariable("EVENT_GENERATION_MODE",ToString(m_eventmode));
-  if (!read.ReadFromFile(m_ovwth,"OVERWEIGHT_WARNING_THRESHOLD")) m_ovwth=10.0;
+  if (!read.ReadFromFile(m_ovwth,"OVERWEIGHT_THRESHOLD")) m_ovwth=1e12;
   if (!read.ReadFromFile(m_seedmode,"EVENT_SEED_MODE")) m_seedmode=0;
   else msg_Info()<<METHOD<<"(): Set seed mode "<<m_seedmode<<"."<<std::endl;
   if (!read.ReadFromFile(m_rsadd,"MEH_RSADD")) m_rsadd=1;
@@ -169,6 +170,7 @@ void Matrix_Element_Handler::SetRandomSeed()
 
 bool Matrix_Element_Handler::GenerateOneEvent() 
 {
+  Return_Value::IncCall(METHOD);
   p_proc=NULL;
   if (m_seedmode!=3) SetRandomSeed();
   p_isr->SetPDFMember();
@@ -205,12 +207,13 @@ bool Matrix_Element_Handler::GenerateOneEvent()
     if (m_eventmode!=0) {
       double max=p_proc->Integrator()->Max(), disc=max*ran->Get();
       if (dabs(m_evtinfo.m_weight)<disc) continue;
-      if (dabs(m_evtinfo.m_weight)>max*(1.0+m_ovwth))
-	  msg_Info()<<METHOD<<"(): Point for '"<<p_proc->Name()
-		    <<"' exceeds maximum by "
-		    <<dabs(m_evtinfo.m_weight)/max-1.0<<"."<<std::endl;
-      if (m_eventmode==1 && dabs(m_evtinfo.m_weight)>max*(100.0))
-        m_evtinfo.m_weight=100.0*max;
+      if (dabs(m_evtinfo.m_weight)>max*m_ovwth) {
+        Return_Value::IncWarning(METHOD);
+        msg_Info()<<METHOD<<"(): Point for '"<<p_proc->Name()
+                  <<"' exceeds maximum by "
+                  <<dabs(m_evtinfo.m_weight)/max-1.0<<"."<<std::endl;
+        m_evtinfo.m_weight=max*m_ovwth;
+      }
       m_weightfactor=dabs(m_evtinfo.m_weight)/max;
       wf/=Min(1.0,m_weightfactor);
     }
@@ -426,7 +429,7 @@ void Matrix_Element_Handler::BuildProcesses()
   std::string kfactor=read.GetValue<std::string>("KFACTOR","NO");
   // set scale scheme
   std::string scale=read.GetValue<std::string>
-    ("SCALES","METS{MU_F2}{MU_R2}{MU_Q2}");
+    ("SCALES","STRICT_METS{MU_F2}{MU_R2}{MU_Q2}");
   std::vector<std::string> helpsv;
   if (!read.VectorFromFile(helpsv,"COUPLINGS"))
     helpsv.push_back("Alpha_QCD 1");
@@ -553,11 +556,11 @@ void Matrix_Element_Handler::BuildProcesses()
 	}
 	if (cur[0]=="Min_N_TChannels") {
 	  std::string cb(MakeString(cur,1));
-	  ExtractMPvalues(cb,pbi.m_vntchan,nf);
+	  ExtractMPvalues(cb,pbi.m_vntchanmin,nf);
 	}
 	if (cur[0]=="Max_N_TChannels") {
 	  std::string cb(MakeString(cur,1));
-	  ExtractMPvalues(cb,pbi.m_vmtchan,nf);
+	  ExtractMPvalues(cb,pbi.m_vntchanmax,nf);
 	}
 	if (cur[0]=="Integration_Error") {
 	  std::string cb(MakeString(cur,1));
@@ -784,8 +787,8 @@ void Matrix_Element_Handler::BuildSingleProcessList
 	if (GetMPvalue(pbi.m_vnmaxq,nfs,pnid,di)) cpi.m_nmaxq=di;
 	if (GetMPvalue(pbi.m_vnminq,nfs,pnid,di)) cpi.m_nminq=di;
 	if (GetMPvalue(pbi.m_vamegicmhv,nfs,pnid,di)) cpi.m_amegicmhv=di;
-	if (GetMPvalue(pbi.m_vntchan,nfs,pnid,di)) cpi.m_ntchan=di;
-	if (GetMPvalue(pbi.m_vmtchan,nfs,pnid,di)) cpi.m_mtchan=di;
+	if (GetMPvalue(pbi.m_vntchanmin,nfs,pnid,di)) cpi.m_ntchanmin=di;
+	if (GetMPvalue(pbi.m_vntchanmax,nfs,pnid,di)) cpi.m_ntchanmax=di;
 	if (GetMPvalue(pbi.m_vgpath,nfs,pnid,ds)) cpi.m_gpath=ds;
 	if (GetMPvalue(pbi.m_vaddname,nfs,pnid,ds)) cpi.m_addname=ds;
 	if (GetMPvalue(pbi.m_vnloqcdmode,nfs,pnid,ds)) {

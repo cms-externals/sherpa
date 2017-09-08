@@ -729,6 +729,7 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     msg_Debugging()<<"1 to 2 case"<<std::endl;
     Cluster_Amplitude* copy=ampl->InitPrev();
     copy->CopyFrom(ampl);
+    copy->SetNLO(0);
     copy->SetFlag(1);
     copy->SetMS(ampl->MS());
     Cluster_Leg *lij(ampl->IdLeg(idmother));
@@ -764,8 +765,10 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     d1->SetMom(RecombinedMomentum(daughters[0],photons,stat1));
     d1->SetStat(stat1);
     d1->SetFlav(daughters[0]->Flav());
+    d1->SetFromDec(true);
     copy->CreateLeg(RecombinedMomentum(daughters[1],photons,stat2),
                     daughters[1]->RefFlav());
+    copy->Legs().back()->SetFromDec(true);
     size_t idnew=1<<(++imax);
     copy->Legs().back()->SetId(idnew);
     copy->Legs().back()->SetStat(stat2);
@@ -803,6 +806,7 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     // propagator always combines daughters 1+2
     Cluster_Amplitude* step1=ampl->InitPrev();
     step1->CopyFrom(ampl);
+    step1->SetNLO(0);
     step1->SetFlag(1);
     step1->SetMS(ampl->MS());
     Cluster_Leg *lij(ampl->IdLeg(idmother));
@@ -839,6 +843,7 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     d1->SetMom(RecombinedMomentum(daughters[0],photons,stat1));
     d1->SetStat(stat1);
     d1->SetFlav(daughters[0]->Flav());
+    d1->SetFromDec(true);
     // todo: 1->2 qcd shower with ew fs recoil partner
     // d1->SetK(idmother);// not that simple: w->qq' has color connection in fs
     Decay_Channel* dc(NULL);
@@ -858,6 +863,7 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     size_t idnew1=1<<(++imax);
     step1->Legs().back()->SetId(idnew1);
     step1->Legs().back()->SetStat(0);
+    step1->Legs().back()->SetFromDec(true);
     Cluster_Amplitude::SetColours(ampl->IdLeg(idmother),
                                   step1->IdLeg(idmother),
                                   step1->Legs().back());
@@ -879,6 +885,7 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     
     Cluster_Amplitude* step2=step1->InitPrev();
     step2->CopyFrom(step1);
+    step2->SetNLO(0);
     step2->SetFlag(1);
     step2->SetMS(step1->MS());
     for (size_t i=0; i<step1->Legs().size(); ++i)
@@ -894,6 +901,7 @@ void Hard_Decay_Handler::AddDecayClustering(ATOOLS::Cluster_Amplitude*& ampl,
     size_t idnew2=1<<(++imax);
     step2->Legs().back()->SetId(idnew2);
     step2->Legs().back()->SetStat(stat3);
+    step2->Legs().back()->SetFromDec(true);
     Cluster_Amplitude::SetColours(step1->IdLeg(idnew1),
                                   step2->IdLeg(idnew1),
                                   step2->Legs().back());
@@ -951,6 +959,7 @@ void Hard_Decay_Handler::AddPhotonsClustering(Cluster_Amplitude*& ampl,
                 <<" with "<<daughter->Flav()<<" "<<ID(idmother)<<std::endl;
   Cluster_Amplitude* copy=ampl->InitPrev();
   copy->CopyFrom(ampl);
+  copy->SetNLO(0);
   copy->SetFlag(1);
   copy->SetMS(ampl->MS());
   Cluster_Leg *lij(ampl->IdLeg(idmother));
