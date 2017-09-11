@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("DIRE/Shower","branches/rel-2-2-2","29489","a36e447247ba668b1079e0f4a4febe09");
+("DIRE/Shower","branches/rel-2-2-4","30888","2f728851b93d27e72d5bb1774fb28372");

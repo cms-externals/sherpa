@@ -1,3 +1,3 @@
 #include "ATOOLS/Org/SVN_Info.H"
 static ATOOLS::SVN_Info initializer
-("COMIX/Main","branches/rel-2-2-2","29489","7737722bffe74bf00dea8e1885a9d2f2");
+("COMIX/Main","branches/rel-2-2-4","30888","6f024a2dc1d360956e6953f212f975e2");

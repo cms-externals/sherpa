@@ -28,6 +28,8 @@ PDF_Base::~PDF_Base()
 
 double PDF_Base::AlphaSPDF(const double &q2)
 {
+  msg_Error()<<"USE_PDF_ALPHAS is not an allowed option without a PDF set"<<std::endl;
+  THROW(fatal_error,METHOD+" not implemented for this PDF set.") ;
   return -1.0;
 }
 
