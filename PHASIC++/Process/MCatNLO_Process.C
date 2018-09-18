@@ -341,7 +341,8 @@ double MCatNLO_Process::ReweightLocalKFactor(
   return LocalKFactor(info.m_bvivarweights->GetVariationWeightAt(i),
                       info.m_bvarweights->GetVariationWeightAt(i),
                       info.m_rsvarweights->GetVariationWeightAt(i),
-                      info.m_rsvarweights->GetVariationWeightAt(i, subevtcount - 1),
+                      info.m_rsvarweights->GetVariationWeightAt(
+                        i, SHERPA::Variations_Type::all, subevtcount - 1),
                       info.m_random);
 }
 
@@ -472,7 +473,7 @@ double MCatNLO_Process::OneSEvent(const int wmode)
     ampl->SetMuF2(next->MuF2());
     ampl->SetMuR2(next->MuR2());
     ampl->SetOrderQCD(next->OrderQCD()+1);
-    ampl->Next()->SetNLO(4);
+    ampl->Next()->SetNLO(ampl->Next()->NLO()|4);
     ampl->SetJF(ampl->Next()->JF<void>());
     next->SetKin(kt2.m_kin);
     while (ampl->Next()) {
@@ -503,7 +504,7 @@ double MCatNLO_Process::OneSEvent(const int wmode)
   if (p_ampl->Leg(0)->Mom().PPlus()>p_ampl->Leg(1)->Mom().PPlus())
     std::swap<Cluster_Leg*>(p_ampl->Legs()[0],p_ampl->Legs()[1]);
   ampl=p_ampl;
-  ampl->SetNLO(4);
+  ampl->SetNLO(ampl->NLO()|4);
   bproc->Integrator()->SetMomenta(*p_ampl);
   msg_Debugging()<<"B selected "<<*p_ampl
 		 <<" ( w = "<<p_nlomc->Weight()<<" )\n";
@@ -582,10 +583,12 @@ Weight_Info *MCatNLO_Process::OneEvent(const int wmode,const int mode)
   if (rpa->gen.HardSC() || (rpa->gen.SoftSC() && !Flavour(kf_tau).IsStable())) {
     DEBUG_INFO("Calcing Differential for spin correlations using "
 	       <<Selected()->Generator()->Name()<<":");
+    ME_Weight_Info original_me_wgt_info = *p_selected->Selected()->GetMEwgtinfo();
     if (Selected()->Integrator()->ColorIntegrator()!=NULL)
       while (Selected()->Differential(*p_ampl,1|2|4|128)==0.0);
     else
       Selected()->Differential(*p_ampl,1|2|4|128);
+    p_selected->Selected()->SetMEwgtinfo(original_me_wgt_info);
   }
   return winfo;
 }

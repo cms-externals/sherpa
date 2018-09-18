@@ -144,6 +144,7 @@ ATOOLS::Cluster_Sequence_Info Single_Process::ClusterSequenceInfo(
     bool skipsfirstampl, const double &Q2,
     const double &muf2fac,
     const double &mur2fac,
+    const double &showermuf2fac,
     MODEL::One_Running_AlphaS * as,
     const ATOOLS::Cluster_Sequence_Info * const nominalcsi)
 {
@@ -151,12 +152,14 @@ ATOOLS::Cluster_Sequence_Info Single_Process::ClusterSequenceInfo(
     return 1.;
   }
   if (m_nin == 1) {
-    return 0.5 / p_int->Momenta()[0].Mass();
+    return 1.0;
   } else if (m_nin > 2) {
     THROW(not_implemented, "More than two incoming particles.");
   }
   Cluster_Sequence_Info csi;
-  AddISR(csi, ampls, skipsfirstampl, Q2, muf2fac, mur2fac, as, nominalcsi);
+  AddISR(csi, ampls, skipsfirstampl,
+         Q2, muf2fac, mur2fac, showermuf2fac, as,
+         nominalcsi);
   AddBeam(csi, Q2);
   return csi;
 }
@@ -165,6 +168,7 @@ void Single_Process::AddISR(ATOOLS::Cluster_Sequence_Info &csi,
             const ATOOLS::ClusterAmplitude_Vector &ampls,
             bool skipsfirstampl, const double &Q2,
             const double &muf2fac, const double &mur2fac,
+            const double &showermuf2fac,
             MODEL::One_Running_AlphaS * as,
             const ATOOLS::Cluster_Sequence_Info * const nominalcsi)
 {
@@ -206,6 +210,7 @@ void Single_Process::AddISR(ATOOLS::Cluster_Sequence_Info &csi,
       // add subsequent splittings
       bool addedfirstsplitting(false);
       double currentQ2(Q2);
+      double currentscalefactor(1.0);
       double pdfnum(pdfext), pdfden(pdfext);
       for (; ampl; ampl = ampl->Next()) {
         // skip decays, equal scales, unordered configs,
@@ -232,8 +237,8 @@ void Single_Process::AddISR(ATOOLS::Cluster_Sequence_Info &csi,
 			 f1, f2);
 
         // skip equal scales
-        if (IsEqual(currentQ2, ampl->Next() ? ampl->KT2() : Q2)) {
-          msg_Debugging()<<"Skip. Scales equal: t_i="<<currentQ2
+        if (IsEqual(currentQ2 / currentscalefactor, ampl->Next() ? showermuf2fac * ampl->KT2() : Q2)) {
+          msg_Debugging()<<"Skip. Scales equal: t_i="<<currentQ2 / currentscalefactor
                          <<", t_{i+1}="<<(ampl->Next()?ampl->KT2():Q2)
                          <<std::endl;
           if (ampl->Next() == NULL) {
@@ -245,16 +250,18 @@ void Single_Process::AddISR(ATOOLS::Cluster_Sequence_Info &csi,
         }
 
         // skip unordered configuration
-	if (addedfirstsplitting && currentQ2 > ampl->KT2()) {
+	if (addedfirstsplitting && (currentQ2 / currentscalefactor > ampl->KT2())) {
 	  msg_Debugging()<<"Skip. Unordered history "<<
-	    sqrt(currentQ2)<<" > "<<sqrt(ampl->KT2())<<"\n";
+	    sqrt(currentQ2 / currentscalefactor)<<" > "<<sqrt(ampl->KT2())<<"\n";
 	  currentQ2 = sqrt(std::numeric_limits<double>::max());
 	  continue;
 	}
 
         // skip when a scale is below a (quark) mass threshold
-	if (currentQ2 < sqr(2.0 * f1.Mass(true)) || currentQ2 < sqr(2.0 * f2.Mass(true))) {
-	  msg_Debugging()<<"Skip. Quarks below threshold: t="<<currentQ2
+	if (currentQ2 / currentscalefactor < sqr(2.0 * f1.Mass(true))
+            || currentQ2 / currentscalefactor < sqr(2.0 * f2.Mass(true))) {
+	  msg_Debugging()<<"Skip. Quarks below threshold: t="
+                         <<currentQ2 / currentscalefactor
 			 <<" vs. "<<sqr(2.0*f1.Mass(true))
 			 <<" / "<<sqr(2.0*f2.Mass(true))<<std::endl;
 	  continue;
@@ -277,7 +284,13 @@ void Single_Process::AddISR(ATOOLS::Cluster_Sequence_Info &csi,
         // because we might be reweighting and Q2 could have been multiplied
         // by a scaling factor, whereas ampl->MuF2 would not reflect this)
 	double lastQ2=currentQ2;
-	currentQ2 = (ampl->Next() == NULL) ? Q2 : ampl->KT2();
+        if (ampl->Next() == NULL) {
+          currentQ2 = Q2;
+          currentscalefactor = 1.0;
+        } else {
+          currentQ2 = showermuf2fac * ampl->KT2();
+          currentscalefactor = showermuf2fac;
+        }
 
 	// skip when a scale is below a (quark) mass threshold, new scale
         if (currentQ2 < sqr(2.0 * f1.Mass(true)) || currentQ2 < sqr(2.0 * f2.Mass(true))) {
@@ -410,7 +423,7 @@ double Single_Process::Differential(const Vec4D_Vector &p)
   m_mewgtinfo.m_fl2=(int)(Flavours()[1]);
   p_int->SetMomenta(p);
   if (IsMapped()) p_mapproc->Integrator()->SetMomenta(p);
-  m_lastflux = p_int->ISR()->Flux(p[0],p[1]);
+  m_lastflux = m_nin==1?p_int->ISR()->Flux(p[0]):p_int->ISR()->Flux(p[0],p[1]);
   if (GetSubevtList()==NULL) {
     if (m_zero) return 0.0;
     Scale_Setter_Base *scs(ScaleSetter(1));
@@ -461,7 +474,7 @@ double Single_Process::Differential(const Vec4D_Vector &p)
                          cp->Flavours()[0],cp->Flavours()[1]);
           msg_Debugging()<<dads<<std::endl;
           m_mewgtinfo.m_dadsinfos.push_back(dads);
-          if (p_variationweights && dadsmewgt != 0.0) {
+          if (p_variationweights && dadsmewgt != 0.0 && !IsNan(dadsmewgt)) {
             *cp->VariationWeights() *= dps.m_weight;
           }
           m_last-=dadswgt;
@@ -720,6 +733,7 @@ ATOOLS::Cluster_Sequence_Info Single_Process::ClusterSequenceInfo(
   ATOOLS::Cluster_Sequence_Info csi(
       ClusterSequenceInfo(info.m_ampls, info.m_skipsfirstampl,
                           Q2, varparams->m_muF2fac, varparams->m_muR2fac,
+                          varparams->m_showermuF2fac,
                           varparams->p_alphas,
                           nominalcsi));
 
@@ -755,26 +769,26 @@ std::vector<double> Single_Process::AlphaSRatios(
   Single_Process::BornLikeReweightingInfo & info) const
 {
   std::vector<double> ratios;
-  if (varparams->m_showermuR2fac != 1.0) {
-    ATOOLS::ClusterAmplitude_Vector &ampls = info.m_ampls;
-    if (ampls.size() && (m_pinfo.m_ckkw & 1)) {
-      // go through cluster sequence
-      for (Cluster_Amplitude *ampl(ampls.front()); ampl; ampl = ampl->Next()) {
-        const size_t power = ampl->Next() ?
-          ampl->OrderQCD() - ampl->Next()->OrderQCD() : ampl->OrderQCD();
-        if (power > 0) {
-          const double mu2(Max(ampl->Mu2(), MODEL::as->CutQ2()));
-          const double mu2new(mu2 * varparams->m_showermuR2fac);
-          const double alphasold(MODEL::as->BoundedAlphaS(mu2));
-          const double alphasnew(varparams->p_alphas->BoundedAlphaS(mu2new));
-          const double alphasratio(alphasnew / alphasold);
-          for (size_t i(0); i < power; i++) {
-            ratios.push_back(alphasratio);
-          }
+  if ((m_pinfo.m_ckkw & 1) && (varparams->m_showermuR2fac != 1.0)) {
+    // go through cluster sequence
+    for (Cluster_Amplitude *ampl(info.m_ampls.front());
+         ampl;
+         ampl = ampl->Next()) {
+      const size_t power = ampl->Next() ?
+        ampl->OrderQCD() - ampl->Next()->OrderQCD() : ampl->OrderQCD();
+      if (power > 0) {
+        const double mu2(Max(ampl->Mu2(), MODEL::as->CutQ2()));
+        const double mu2new(mu2 * varparams->m_showermuR2fac);
+        const double alphasold(MODEL::as->BoundedAlphaS(mu2));
+        const double alphasnew(varparams->p_alphas->BoundedAlphaS(mu2new));
+        const double alphasratio(alphasnew / alphasold);
+        for (size_t i(0); i < power; i++) {
+          ratios.push_back(alphasratio);
         }
       }
     }
   } else {
+    // no merging or shower reweighting, just reweight the core process
     const double muR2new(info.m_muR2 * varparams->m_muR2fac);
     const double alphasnew((*varparams->p_alphas)(muR2new));
     const double alphasold((*MODEL::as)(info.m_muR2));

@@ -139,7 +139,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(localincdir)"
 LTLIBRARIES = $(pkglib_LTLIBRARIES)
 libAhadicTools_la_LIBADD =
-am_libAhadicTools_la_OBJECTS = SVN_Info.lo Proto_Particle.lo \
+am_libAhadicTools_la_OBJECTS = Git_Info.lo Proto_Particle.lo \
 	Cluster.lo Constituents.lo Hadron_Wave_Function.lo \
 	Hadron_Multiplet.lo Transitions.lo Splitter_Base.lo \
 	Gluon_Splitter.lo Cluster_Splitter.lo Dipole.lo \
@@ -211,7 +211,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-am__DIST_COMMON = $(srcdir)/../../svn.make $(srcdir)/Makefile.in \
+am__DIST_COMMON = $(srcdir)/../../git.make $(srcdir)/Makefile.in \
 	$(top_srcdir)/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 pkgdatadir = @pkgdatadir@
@@ -267,6 +267,9 @@ CONDITIONAL_GZIPLIBS = @CONDITIONAL_GZIPLIBS@
 CONDITIONAL_HEPMC2DIR = @CONDITIONAL_HEPMC2DIR@
 CONDITIONAL_HEPMC2INCS = @CONDITIONAL_HEPMC2INCS@
 CONDITIONAL_HEPMC2LIBS = @CONDITIONAL_HEPMC2LIBS@
+CONDITIONAL_HEPMC3DIR = @CONDITIONAL_HEPMC3DIR@
+CONDITIONAL_HEPMC3INCS = @CONDITIONAL_HEPMC3INCS@
+CONDITIONAL_HEPMC3LIBS = @CONDITIONAL_HEPMC3LIBS@
 CONDITIONAL_HZTOOLDIR = @CONDITIONAL_HZTOOLDIR@
 CONDITIONAL_HZTOOLINCS = @CONDITIONAL_HZTOOLINCS@
 CONDITIONAL_HZTOOLLIBS = @CONDITIONAL_HZTOOLLIBS@
@@ -465,10 +468,10 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 pkglib_LTLIBRARIES = libAhadicTools.la
-SVNTAG = AHADIC++/Tools
-DISTCLEANFILES = SVN_Info.C
+GITTAG = AHADIC++/Tools
+DISTCLEANFILES = Git_Info.C
 libAhadicTools_la_SOURCES = \
-                            SVN_Info.C \
+                            Git_Info.C \
 			    Proto_Particle.C \
 			    Cluster.C \
                             Constituents.C \
@@ -502,7 +505,7 @@ all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .C .lo .o .obj
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/../../svn.make $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/../../git.make $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -522,7 +525,7 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe);; \
 	esac;
-$(srcdir)/../../svn.make $(am__empty):
+$(srcdir)/../../git.make $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
@@ -581,13 +584,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Cluster_Splitter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Constituents.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Dipole.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Git_Info.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Gluon_Splitter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Hadron_Init.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Hadron_Multiplet.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Hadron_Wave_Function.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Hadronisation_Parameters.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Proto_Particle.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SVN_Info.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Soft_Cluster_Handler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Splitter_Base.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Transitions.Plo@am__quote@
@@ -854,37 +857,28 @@ uninstall-am: uninstall-localincHEADERS uninstall-pkglibLTLIBRARIES
 
 MD5_EXCLUDE ?= 
 
-SVN_Info.C: SVN_Info.C.in
-	@if ! which svn > /dev/null || \
-	  ! svn info $(top_srcdir) > /dev/null 2>&1 && \
-	  ! git svn info $(srcdir) > /dev/null 2>&1; then \
+Git_Info.C: Git_Info.C.in
+	@if ! which git > /dev/null || \
+	  ! (cd $(top_srcdir); git rev-parse HEAD > /dev/null 2>&1); then \
 	  if test -f $(srcdir)/$@; then \
 	    cp $(srcdir)/$@ $@.tmp; chmod u+rw $@.tmp; \
 	  else \
 	    echo "***************************************************"; \
-	    echo "* Incomplete sources and no SVN information. This *"; \
+	    echo "* Incomplete sources and no git information. This *"; \
 	    echo "* copy of Sherpa will not be supported. Please    *"; \
 	    echo "* contact sherpa@projects.hepforge.org for help.  *"; \
 	    echo "***************************************************"; \
 	    exit 1; \
 	  fi; \
 	else \
-	  cur=$$(echo "/"$(SVNTAG) | sed -e's/[+]/[+]/g'); \
-	  if svn info $(top_srcdir) > /dev/null 2>&1; then \
-	    url=$$(svn info $(srcdir) | awk '{ if ($$1=="URL:") { \
-	      split($$2,a,"/sherpa/"); \
-	      if (length(a[2])==0) split($$2,a,"/svn/"); \
-	      sub("'$$cur'","",a[2]); print a[2]; } }'); \
-	    rev=$$(svnversion $(srcdir)); \
-	  else \
-	    url=$$(git svn info $(srcdir) | awk '{ if ($$1=="URL:") { \
-	      split($$2,a,"/sherpa/"); \
-	      sub("'$$cur'","",a[2]); print a[2]; } }'); \
-	    rev=$$(git svn info $(srcdir) | grep Revision | cut -d " " -f2); \
+	  rev=$$(cd $(top_srcdir); git rev-parse HEAD); \
+	  if test -n "$$(cd $(srcdir); git status -s --untracked-files=no .)"; then \
+	    rev=$$rev"-dirty"; \
 	  fi; \
-	  echo '#include "ATOOLS/Org/SVN_Info.H"' > $@.tmp; \
-	  echo 'static ATOOLS::SVN_Info initializer' >> $@.tmp; \
-	  echo '("$(SVNTAG)","'$$url'","'$$rev'","X");' >> $@.tmp; \
+	  url=$$(git rev-parse --abbrev-ref HEAD); \
+	  echo '#include "ATOOLS/Org/Git_Info.H"' > $@.tmp; \
+	  echo 'static ATOOLS::Git_Info initializer' >> $@.tmp; \
+	  echo '("$(GITTAG)","'$$url'","'$$rev'","X");' >> $@.tmp; \
 	fi; \
 	if test -z $(NOMD5SUM); then \
 	  mds=$$(cat $(addprefix $(srcdir)/, \
@@ -898,7 +892,7 @@ SVN_Info.C: SVN_Info.C.in
 	  rm $@.tmp; \
 	fi;
 
-.PHONY: SVN_Info.C.in
+.PHONY: Git_Info.C.in
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
