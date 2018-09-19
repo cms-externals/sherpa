@@ -3,6 +3,7 @@
 
 #include "ATOOLS/Phys/Cluster_Leg.H"
 #include "ATOOLS/Phys/Decay_Info.H"
+#include "ATOOLS/Org/Smart_Pointer.H"
 
 #include <vector>
 #include <map>
@@ -16,6 +17,9 @@ namespace ATOOLS {
   public:
 
     ClusterAmplitude_PVector();
+
+    Cluster_Amplitude * OneAmpl();
+
 
     ~ClusterAmplitude_PVector();
 
@@ -40,6 +44,7 @@ namespace ATOOLS {
     static ClusterAmplitude_PVector s_ampls;
 
     friend class ClusterAmplitude_PVector;
+    friend class SP(ATOOLS::Cluster_Amplitude);
 
   protected:
 
@@ -177,6 +182,10 @@ namespace ATOOLS {
 
   std::ostream &operator<<
     (std::ostream &ostr,const Cluster_Amplitude &ampl);
+
+  std::ostream &operator<<
+    (std::ostream &ostr,const Cluster_Amplitude * ampl);
+
 
   typedef std::vector<Cluster_Amplitude*> ClusterAmplitude_Vector;
 

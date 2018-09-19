@@ -15,8 +15,8 @@ using namespace std;
 
 bool CSSHOWER::Sudakov::s_init=false;
 
-Sudakov::Sudakov(PDF::ISR_Handler *isr,const int qed) : 
-  p_rms(NULL)
+Sudakov::Sudakov(PDF::ISR_Handler *isr,const int qed) :
+  p_rms(NULL), m_reweightscalecutoff(0.0)
 {
   m_ewmode=qed;
   p_pdf = new PDF::PDF_Base*[2];
@@ -400,10 +400,16 @@ bool Sudakov::Generate(Parton * split)
       msg_Error()<<"Error in Sudakov::Generate!"<<std::endl;
       abort();
     }
+    m_phi = 2.0*M_PI*ran->Get();
+    p_split->SetPhi(m_phi);
+    Split_Args splitargs(p_split,p_split->GetColSpec());
+    if (p_split->GetColSpec()) p_selected->Lorentz()->SetSplit(&splitargs);
     const bool veto(Veto(Q2, m_x));
     if (p_variationweights && (m_reweightpdfs || m_reweightalphas)) {
-      p_variationweights->UpdateOrInitialiseWeights(&Sudakov::Reweight, *this, veto);
+      p_variationweights->UpdateOrInitialiseWeights(
+          &Sudakov::Reweight, *this, veto, SHERPA::Variations_Type::sudakov);
     }
+    p_selected->Lorentz()->SetSplit(NULL);
     if (veto) {
       success = true;
       break;
@@ -419,7 +425,6 @@ bool Sudakov::Generate(Parton * split)
     <<" with kt2 = "<<m_kperp2<<", y = "<<m_y<<", z = "<<m_z<<endl;
     }
   */
-  m_phi = 2.0*M_PI*ran->Get();
   return success;
 }
 
@@ -428,7 +433,7 @@ double Sudakov::Reweight(SHERPA::Variation_Parameters * varparams,
                          SHERPA::Variation_Weights * varweights,
                          const bool &success)
 {
-  // retrieve and validate acceptance weight of the last emission
+  // retrieve and validate acceptance weight and scale of the last emission
   const double accwgt(Selected()->LastAcceptanceWeight());
   std::string error;
   if (accwgt > 1.0) {
@@ -441,6 +446,8 @@ double Sudakov::Reweight(SHERPA::Variation_Parameters * varparams,
     // might not be valid. In any case, the (1 - rejwgt) factor for rejections
     // will lead to weight factor of 1.
     error = "emission acceptance weight is zero";
+  } else if (Selected()->LastScale() < m_reweightscalecutoff) {
+    error = "CSS emission scale is below the reweighting scale cut-off";
   }
   if (error != "") {
     p_variationweights->IncrementOrInitialiseWarningCounter(error);
@@ -474,13 +481,16 @@ double Sudakov::Reweight(SHERPA::Variation_Parameters * varparams,
       double newJ;
       switch (m_type) {
         case cstp::II:
-          newJ = Selected()->Lorentz()->JII(m_z, m_y, m_x, lastscale);
+          newJ = Selected()->Lorentz()->JII(
+              m_z, m_y, m_x, varparams->m_showermuF2fac * lastscale);
           break;
         case cstp::IF:
-          newJ = Selected()->Lorentz()->JIF(m_z, m_y, m_x, lastscale);
+          newJ = Selected()->Lorentz()->JIF(
+              m_z, m_y, m_x, varparams->m_showermuF2fac * lastscale);
           break;
         case cstp::FI:
-          newJ = Selected()->Lorentz()->JFI(m_y, m_x, lastscale);
+          newJ = Selected()->Lorentz()->JFI(
+              m_y, m_x, varparams->m_showermuF2fac * lastscale);
           break;
         case cstp::FF:
         case cstp::none:

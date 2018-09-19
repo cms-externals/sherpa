@@ -13,8 +13,8 @@ using namespace MODEL;
 using namespace ATOOLS;
 using namespace std;
 
-Sudakov::Sudakov(PDF::ISR_Handler *isr,const int qed) : 
-  p_rms(NULL)
+Sudakov::Sudakov(PDF::ISR_Handler *isr,const int qed) :
+  p_rms(NULL), m_reweightscalecutoff(0.0)
 {
   m_ewmode=qed;
   p_pdf = new PDF::PDF_Base*[2];
@@ -367,7 +367,8 @@ bool Sudakov::Generate(Parton * split)
     }
     const bool veto(Veto(Q2, m_x));
     if (p_variationweights && (m_reweightpdfs || m_reweightalphas)) {
-      p_variationweights->UpdateOrInitialiseWeights(&Sudakov::Reweight, *this, veto);
+      p_variationweights->UpdateOrInitialiseWeights(
+          &Sudakov::Reweight, *this, veto, SHERPA::Variations_Type::sudakov);
     }
     if (veto) {
       success = true;
@@ -383,7 +384,7 @@ double Sudakov::Reweight(SHERPA::Variation_Parameters * varparams,
                          SHERPA::Variation_Weights * varweights,
                          const bool &success)
 {
-  // retrieve and validate acceptance weight of the last emission
+  // retrieve and validate acceptance weight and scale of the last emission
   const double accwgt(Selected()->LastAcceptanceWeight());
   std::string error;
   if (accwgt > 1.0) {
@@ -396,6 +397,8 @@ double Sudakov::Reweight(SHERPA::Variation_Parameters * varparams,
     // might not be valid. In any case, the (1 - rejwgt) factor for rejections
     // will lead to weight factor of 1.
     error = "MCatNLO emission acceptance weight is zero";
+  } else if (Selected()->LastScale() < m_reweightscalecutoff) {
+    error = "MC@NLO emission scale is below the reweighting scale cut-off";
   }
   if (error != "") {
     return 1.0;
@@ -428,13 +431,16 @@ double Sudakov::Reweight(SHERPA::Variation_Parameters * varparams,
       double newJ;
       switch (m_type) {
         case cstp::II:
-          newJ = Selected()->Lorentz()->JII(m_z, m_y, m_x, lastscale, NULL);
+          newJ = Selected()->Lorentz()->JII(
+              m_z, m_y, m_x, varparams->m_muF2fac * lastscale, NULL);
           break;
         case cstp::IF:
-          newJ = Selected()->Lorentz()->JIF(m_z, m_y, m_x, lastscale, NULL);
+          newJ = Selected()->Lorentz()->JIF(
+              m_z, m_y, m_x, varparams->m_muF2fac * lastscale, NULL);
           break;
         case cstp::FI:
-          newJ = Selected()->Lorentz()->JFI(m_y, m_x, lastscale, NULL);
+          newJ = Selected()->Lorentz()->JFI(
+              m_y, m_x, varparams->m_muF2fac * lastscale, NULL);
           break;
         case cstp::FF:
         case cstp::none:
@@ -462,7 +468,8 @@ double Sudakov::Reweight(SHERPA::Variation_Parameters * varparams,
   if (m_reweightalphas) {
     if (Selected()->Coupling()->AllowsAlternativeCouplingUsage()) {
       const double lastcpl(Selected()->Coupling()->Last());
-      Selected()->Coupling()->SetAlternativeUnderlyingCoupling(varparams->p_alphas);
+      Selected()->Coupling()->SetAlternativeUnderlyingCoupling(
+          varparams->p_alphas, varparams->m_muR2fac);
       double newcpl(Selected()->Coupling()->Coupling(lastscale, 0, NULL));
       Selected()->Coupling()->SetAlternativeUnderlyingCoupling(NULL); // reset AlphaS
       Selected()->Coupling()->SetLast(lastcpl); // reset last coupling

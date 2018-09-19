@@ -5,16 +5,18 @@
 #include "ATOOLS/Org/My_Limits.H"
 #include "ATOOLS/Org/MyStrStream.H"
 #include "ATOOLS/Org/My_MPI.H"
+#include "ATOOLS/Math/Random.H"
+#include "ATOOLS/Org/Data_Reader.H"
+#include "ATOOLS/Org/RUsage.H"
 #include "SHERPA/Single_Events/Signal_Processes.H"
 #ifdef USING__PYTHIA
 #include "SHERPA/LundTools/Lund_Interface.H"
 #endif
-#include <unistd.h>
-#include <cassert>
 
-#include "ATOOLS/Math/Random.H"
-#include "ATOOLS/Org/Data_Reader.H"
-#include "ATOOLS/Org/RUsage.H"
+#include <signal.h>
+#include <unistd.h>
+
+#include <cassert>
 
 
 using namespace SHERPA;
@@ -141,8 +143,7 @@ void Event_Handler::InitialiseSeedBlob(ATOOLS::btp::code type,
 }
 
 bool Event_Handler::AnalyseEvent(double & weight) {
-  double trials((*p_signal)["Trials"]->Get<double>());
-  double cxs((*p_signal)["Weight"]->Get<double>());
+  double trials(1.0), cxs(1.0);
   for (Phase_Iterator pit=p_phases->begin();pit!=p_phases->end();++pit) {
     if ((*pit)->Type()==eph::Analysis) {
       switch ((*pit)->Treat(&m_blobs,weight)) {
@@ -156,6 +157,8 @@ bool Event_Handler::AnalyseEvent(double & weight) {
         Return_Value::IncError((*pit)->Name());
         return false;
       case Return_Value::New_Event :
+        trials=(*p_signal)["Trials"]->Get<double>();
+        cxs=(*p_signal)["Weight"]->Get<double>();
         m_n      -= trials;
         m_addn    = trials;
         m_sum    -= cxs;
@@ -180,14 +183,14 @@ int Event_Handler::IterateEventPhases(eventtype::code & mode,double & weight) {
   int retry = 0;
   bool hardps = true;
   do {
-    if ((*pit)->Type()==eph::Analysis) {
+    if ((*pit)->Type()==eph::Analysis || (*pit)->Type()==eph::Userhook) {
       ++pit;
       continue;
     }
 
     Return_Value::code rv((*pit)->Treat(&m_blobs,weight));
     if (rv!=Return_Value::Nothing)
-      msg_Tracking()<<METHOD<<"(): run '"<<(*pit)->Name()<<"' -> "
+      msg_Tracking()<<METHOD<<"(): ran '"<<(*pit)->Name()<<"' -> "
 		    <<rv<<std::endl;
     switch (rv) {
     case Return_Value::Success : 
@@ -241,7 +244,40 @@ int Event_Handler::IterateEventPhases(eventtype::code & mode,double & weight) {
       THROW(fatal_error,"Invalid return value");
     }
   } while (pit!=p_phases->end());
-  msg_Tracking()<<METHOD<<": Event ended normally.\n";
+  msg_Tracking()<<METHOD<<": Event phases ended normally.\n";
+
+  msg_Tracking()<<METHOD<<": Running user hooks now.\n";
+  for (size_t i=0; i<p_phases->size(); ++i) {
+    Event_Phase_Handler* phase=(*p_phases)[i];
+    if (phase->Type()!=eph::Userhook) continue;
+
+    Return_Value::code rv(phase->Treat(&m_blobs, weight));
+    if (rv!=Return_Value::Nothing)
+      msg_Tracking()<<METHOD<<"(): ran '"<<phase->Name()<<"' -> "
+		    <<rv<<std::endl;
+    switch (rv) {
+    case Return_Value::Success :
+      Return_Value::IncCall(phase->Name());
+      msg_Debugging()<<m_blobs;
+      break;
+    case Return_Value::Nothing :
+      break;
+    case Return_Value::New_Event :
+      Return_Value::IncCall(phase->Name());
+      Return_Value::IncNewEvent(phase->Name());
+      if (p_signal) m_addn+=(*p_signal)["Trials"]->Get<double>();
+      Reset();
+      return 2;
+    case Return_Value::Error :
+      Return_Value::IncCall(phase->Name());
+      Return_Value::IncError(phase->Name());
+      return 3;
+    default:
+      THROW(fatal_error,"Invalid return value");
+    }
+  }
+  msg_Tracking()<<METHOD<<": User hooks ended normally.\n";
+
   return 0;
 }
 
@@ -296,7 +332,7 @@ bool Event_Handler::GenerateStandardPerturbativeEvent(eventtype::code &mode)
   m_sumsqr += sqr(cxs);
   m_addn    = 0.0;
 
-  return AnalyseEvent(weight);
+  return AnalyseEvent(cxs);
 }
 
 bool Event_Handler::GenerateMinimumBiasEvent(eventtype::code & mode) {

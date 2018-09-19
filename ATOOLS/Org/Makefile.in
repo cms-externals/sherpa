@@ -138,7 +138,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(localincdir)"
 LTLIBRARIES = $(pkglib_LTLIBRARIES)
 libToolsOrg_la_DEPENDENCIES =
-am_libToolsOrg_la_OBJECTS = libToolsOrg_la-SVN_Info.lo \
+am_libToolsOrg_la_OBJECTS = libToolsOrg_la-Git_Info.lo \
 	libToolsOrg_la-MyStrStream.lo libToolsOrg_la-Return_Value.lo \
 	libToolsOrg_la-Shell_Tools.lo libToolsOrg_la-STL_Tools.lo \
 	libToolsOrg_la-RUsage.lo libToolsOrg_la-Getter_Function.lo \
@@ -237,7 +237,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-am__DIST_COMMON = $(srcdir)/../../svn.make $(srcdir)/CXXFLAGS.H.in \
+am__DIST_COMMON = $(srcdir)/../../git.make $(srcdir)/CXXFLAGS.H.in \
 	$(srcdir)/CXXFLAGS_PACKAGES.H.in $(srcdir)/Makefile.in \
 	$(top_srcdir)/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -294,6 +294,9 @@ CONDITIONAL_GZIPLIBS = @CONDITIONAL_GZIPLIBS@
 CONDITIONAL_HEPMC2DIR = @CONDITIONAL_HEPMC2DIR@
 CONDITIONAL_HEPMC2INCS = @CONDITIONAL_HEPMC2INCS@
 CONDITIONAL_HEPMC2LIBS = @CONDITIONAL_HEPMC2LIBS@
+CONDITIONAL_HEPMC3DIR = @CONDITIONAL_HEPMC3DIR@
+CONDITIONAL_HEPMC3INCS = @CONDITIONAL_HEPMC3INCS@
+CONDITIONAL_HEPMC3LIBS = @CONDITIONAL_HEPMC3LIBS@
 CONDITIONAL_HZTOOLDIR = @CONDITIONAL_HZTOOLDIR@
 CONDITIONAL_HZTOOLINCS = @CONDITIONAL_HZTOOLINCS@
 CONDITIONAL_HZTOOLLIBS = @CONDITIONAL_HZTOOLLIBS@
@@ -493,10 +496,10 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 pkglib_LTLIBRARIES = libToolsOrg.la
 MD5_EXCLUDE = CXXFLAGS_PACKAGES.H CXXFLAGS.H
-SVNTAG = ATOOLS/Org
-DISTCLEANFILES = SVN_Info.C
+GITTAG = ATOOLS/Org
+DISTCLEANFILES = Git_Info.C
 libToolsOrg_la_SOURCES = \
-				SVN_Info.C \
+				Git_Info.C \
 				MyStrStream.C \
 				Return_Value.C \
 				Shell_Tools.C \
@@ -524,7 +527,7 @@ libToolsOrg_la_SOURCES = \
 localinc_HEADERS = \
 			CXXFLAGS_PACKAGES.H \
 			CXXFLAGS.H \
-			SVN_Info.H \
+			Git_Info.H \
 			Return_Value.H \
 			Smart_Pointer.H \
 			Smart_Pointer.C \
@@ -566,7 +569,7 @@ all: CXXFLAGS.H CXXFLAGS_PACKAGES.H
 
 .SUFFIXES:
 .SUFFIXES: .C .c .lo .o .obj
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/../../svn.make $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/../../git.make $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -586,7 +589,7 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe);; \
 	esac;
-$(srcdir)/../../svn.make $(am__empty):
+$(srcdir)/../../git.make $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
@@ -666,6 +669,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-Exception_Handler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-File_IO_Base.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-Getter_Function.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-Git_Info.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-Gzip_Stream.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-IO_Handler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-Info_Key.Plo@am__quote@
@@ -681,7 +685,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-Return_Value.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-Run_Parameter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-STL_Tools.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-SVN_Info.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-Shell_Tools.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libToolsOrg_la-binreloc.Plo@am__quote@
 
@@ -706,12 +709,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
 
-libToolsOrg_la-SVN_Info.lo: SVN_Info.C
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libToolsOrg_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libToolsOrg_la-SVN_Info.lo -MD -MP -MF $(DEPDIR)/libToolsOrg_la-SVN_Info.Tpo -c -o libToolsOrg_la-SVN_Info.lo `test -f 'SVN_Info.C' || echo '$(srcdir)/'`SVN_Info.C
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libToolsOrg_la-SVN_Info.Tpo $(DEPDIR)/libToolsOrg_la-SVN_Info.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='SVN_Info.C' object='libToolsOrg_la-SVN_Info.lo' libtool=yes @AMDEPBACKSLASH@
+libToolsOrg_la-Git_Info.lo: Git_Info.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libToolsOrg_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libToolsOrg_la-Git_Info.lo -MD -MP -MF $(DEPDIR)/libToolsOrg_la-Git_Info.Tpo -c -o libToolsOrg_la-Git_Info.lo `test -f 'Git_Info.C' || echo '$(srcdir)/'`Git_Info.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libToolsOrg_la-Git_Info.Tpo $(DEPDIR)/libToolsOrg_la-Git_Info.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Git_Info.C' object='libToolsOrg_la-Git_Info.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libToolsOrg_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libToolsOrg_la-SVN_Info.lo `test -f 'SVN_Info.C' || echo '$(srcdir)/'`SVN_Info.C
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libToolsOrg_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libToolsOrg_la-Git_Info.lo `test -f 'Git_Info.C' || echo '$(srcdir)/'`Git_Info.C
 
 libToolsOrg_la-MyStrStream.lo: MyStrStream.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libToolsOrg_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libToolsOrg_la-MyStrStream.lo -MD -MP -MF $(DEPDIR)/libToolsOrg_la-MyStrStream.Tpo -c -o libToolsOrg_la-MyStrStream.lo `test -f 'MyStrStream.C' || echo '$(srcdir)/'`MyStrStream.C
@@ -1140,37 +1143,28 @@ uninstall-am: uninstall-localincHEADERS uninstall-pkglibLTLIBRARIES
 
 MD5_EXCLUDE ?= 
 
-SVN_Info.C: SVN_Info.C.in
-	@if ! which svn > /dev/null || \
-	  ! svn info $(top_srcdir) > /dev/null 2>&1 && \
-	  ! git svn info $(srcdir) > /dev/null 2>&1; then \
+Git_Info.C: Git_Info.C.in
+	@if ! which git > /dev/null || \
+	  ! (cd $(top_srcdir); git rev-parse HEAD > /dev/null 2>&1); then \
 	  if test -f $(srcdir)/$@; then \
 	    cp $(srcdir)/$@ $@.tmp; chmod u+rw $@.tmp; \
 	  else \
 	    echo "***************************************************"; \
-	    echo "* Incomplete sources and no SVN information. This *"; \
+	    echo "* Incomplete sources and no git information. This *"; \
 	    echo "* copy of Sherpa will not be supported. Please    *"; \
 	    echo "* contact sherpa@projects.hepforge.org for help.  *"; \
 	    echo "***************************************************"; \
 	    exit 1; \
 	  fi; \
 	else \
-	  cur=$$(echo "/"$(SVNTAG) | sed -e's/[+]/[+]/g'); \
-	  if svn info $(top_srcdir) > /dev/null 2>&1; then \
-	    url=$$(svn info $(srcdir) | awk '{ if ($$1=="URL:") { \
-	      split($$2,a,"/sherpa/"); \
-	      if (length(a[2])==0) split($$2,a,"/svn/"); \
-	      sub("'$$cur'","",a[2]); print a[2]; } }'); \
-	    rev=$$(svnversion $(srcdir)); \
-	  else \
-	    url=$$(git svn info $(srcdir) | awk '{ if ($$1=="URL:") { \
-	      split($$2,a,"/sherpa/"); \
-	      sub("'$$cur'","",a[2]); print a[2]; } }'); \
-	    rev=$$(git svn info $(srcdir) | grep Revision | cut -d " " -f2); \
+	  rev=$$(cd $(top_srcdir); git rev-parse HEAD); \
+	  if test -n "$$(cd $(srcdir); git status -s --untracked-files=no .)"; then \
+	    rev=$$rev"-dirty"; \
 	  fi; \
-	  echo '#include "ATOOLS/Org/SVN_Info.H"' > $@.tmp; \
-	  echo 'static ATOOLS::SVN_Info initializer' >> $@.tmp; \
-	  echo '("$(SVNTAG)","'$$url'","'$$rev'","X");' >> $@.tmp; \
+	  url=$$(git rev-parse --abbrev-ref HEAD); \
+	  echo '#include "ATOOLS/Org/Git_Info.H"' > $@.tmp; \
+	  echo 'static ATOOLS::Git_Info initializer' >> $@.tmp; \
+	  echo '("$(GITTAG)","'$$url'","'$$rev'","X");' >> $@.tmp; \
 	fi; \
 	if test -z $(NOMD5SUM); then \
 	  mds=$$(cat $(addprefix $(srcdir)/, \
@@ -1184,7 +1178,7 @@ SVN_Info.C: SVN_Info.C.in
 	  rm $@.tmp; \
 	fi;
 
-.PHONY: SVN_Info.C.in
+.PHONY: Git_Info.C.in
 
 dist-hook:
 	rm -f $(distdir)/CXXFLAGS.H
