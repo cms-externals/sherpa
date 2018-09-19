@@ -59,7 +59,7 @@ Csiscone::~Csiscone(){
   rerun_allowed = false;
 }
 
-bool Csiscone::init_done=false;
+thread_local bool Csiscone::init_done=false;
 
 /*
  * compute the jets from a given particle set doing multiple passes
